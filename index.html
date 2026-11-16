@@ -1,0 +1,3410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFC20E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Charmera">
+<title>Charmera Import</title>
+<style>
+:root { --bg:#111; --bar:#1c1c1c; --cell:#2a2a2a; --yellow:#FFC20E; --ink:#161616; --text:#eee; --muted:#9a9a9a; --green:#8be28b; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+[hidden] { display:none !important; }
+html { background:var(--bg); }
+body { margin:0; background:var(--bg); color:var(--text); font:16px/1.45 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif; min-height:100dvh; display:flex; flex-direction:column; }
+header { background:var(--yellow); color:var(--ink); padding:calc(12px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) 12px calc(18px + env(safe-area-inset-left)); }
+header h1 { margin:0; font-size:22px; }
+header p { margin:2px 0 0; font-size:13px; color:#3b3320; }
+main { flex:1; padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left); }
+.note { margin:12px 16px; padding:10px 12px; border-radius:10px; background:#3a2a10; color:#ffd98a; font-size:14px; }
+#intro { padding:22px 22px 8px; max-width:560px; margin:0 auto; }
+#intro ol { padding-left:22px; margin:0 0 20px; }
+#intro li { margin:0 0 10px; }
+#intro small { color:var(--muted); display:block; margin-top:16px; }
+button, select { font:inherit; }
+.btn { border:0; border-radius:22px; min-height:46px; padding:0 16px; font-weight:700; font-size:15px; color:var(--text); background:#333; }
+.btn.primary { background:var(--yellow); color:var(--ink); }
+.btn:disabled { opacity:.4; }
+.btn.big { width:100%; min-height:54px; font-size:17px; }
+#grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:3px; padding:3px; }
+.cell { position:relative; aspect-ratio:1; padding:0; border:0; background:var(--cell); overflow:hidden; display:block; }
+.cell canvas { width:100%; height:100%; display:block; transition:transform .15s; }
+.cell.isdone canvas { opacity:.45; }
+.cell .badge, .cell .done { position:absolute; bottom:5px; font-size:11px; font-weight:700; padding:1px 5px; border-radius:4px; background:rgba(0,0,0,.7); color:#fff; }
+.cell .badge { left:5px; } .cell .done { right:5px; color:var(--green); }
+.cell .check { position:absolute; top:6px; right:6px; width:26px; height:26px; border-radius:50%; border:2px solid rgba(255,255,255,.85); background:rgba(0,0,0,.25); color:var(--ink); font-weight:700; font-size:15px; line-height:22px; text-align:center; }
+.cell.selected .check { background:var(--yellow); border-color:var(--yellow); }
+.cell.selected::after { content:""; position:absolute; inset:0; border:3px solid var(--yellow); background:rgba(255,194,14,.2); pointer-events:none; }
+#results { margin:14px 16px; padding:16px; border-radius:14px; background:var(--bar); }
+#results h2 { margin:0 0 12px; font-size:17px; }
+#results p { margin:10px 0 0; font-size:14px; color:var(--muted); }
+#results details { margin-top:12px; font-size:14px; color:var(--muted); }
+#rlist a { display:block; color:var(--yellow); padding:6px 0; word-break:break-all; }
+#report { margin:12px 16px; white-space:pre-wrap; font:inherit; font-size:14px; color:#ccc; }
+#bar { position:sticky; bottom:0; background:var(--bar); padding:10px calc(12px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left)); border-top:1px solid #2c2c2c; }
+.row { display:flex; gap:8px; align-items:center; }
+.row + .row { margin-top:8px; }
+.row .grow { flex:1; }
+.row .btn { padding:0 13px; white-space:nowrap; }
+label.sel { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); white-space:nowrap; }
+select { background:#333; color:var(--text); border:0; border-radius:10px; min-height:46px; padding:0 8px; font-size:15px; }
+#ptext { font-size:14px; margin-bottom:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+progress { flex:1; height:8px; accent-color:var(--yellow); }
+#toast { position:fixed; left:16px; right:16px; bottom:calc(150px + env(safe-area-inset-bottom)); padding:12px 14px; border-radius:12px; background:#000; color:#fff; font-size:14px; text-align:center; z-index:5; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Charmera Import</h1>
+  <p id="status">Kodak Charmera → iPhone</p>
+</header>
+<main>
+  <div id="warn" class="note" hidden></div>
+  <section id="intro">
+    <ol>
+      <li>Connect the Kodak Charmera to the iPhone with its USB-C cable.</li>
+      <li>Tap the button below and choose <b>Choose Files</b>.</li>
+      <li>Tap <b>Browse</b>, open the camera (<b>CR1KX_DATA</b>) and go into <b>DCIM</b>.</li>
+      <li>Tap <b>⋯ → Select</b>, mark the photos and videos you want (or <b>Select All</b>), then <b>Open</b>.</li>
+    </ol>
+    <button id="pick" class="btn primary big" type="button">Choose files from the camera</button>
+    <small>Everything happens on this phone. Nothing is uploaded. Keep this page open while videos convert.</small>
+  </section>
+  <div id="grid"></div>
+  <section id="results" hidden>
+    <h2 id="rcount"></h2>
+    <button id="btnSave" class="btn primary big" type="button">Save to Photos</button>
+    <p id="saveHint"></p>
+    <details><summary>Download instead</summary><div id="rlist"></div></details>
+  </section>
+  <pre id="report" hidden></pre>
+</main>
+<div id="bar" hidden>
+  <div id="actions">
+    <div class="row">
+      <button id="pick2" class="btn" type="button">+ Add</button>
+      <button id="btnNew" class="btn" type="button">Mark new</button>
+      <button id="btnAll" class="btn" type="button">All</button>
+      <span class="grow"></span>
+      <button id="btnRotate" class="btn" type="button" aria-label="Rotate marked items 90 degrees clockwise">Rotate ↻</button>
+    </div>
+    <div class="row">
+      <label class="sel">Noise filter
+        <select id="noise"><option value="0">Off</option><option value="1" selected>Normal</option><option value="2">Strong</option></select>
+      </label>
+      <button id="btnGo" class="btn primary grow" type="button">Convert</button>
+    </div>
+  </div>
+  <div id="progress" hidden>
+    <div id="ptext"></div>
+    <div class="row"><progress id="meter" max="1" value="0"></progress><button id="btnCancel" class="btn" type="button">Cancel</button></div>
+  </div>
+</div>
+<div id="toast" role="status" hidden></div>
+<input id="file" type="file" multiple hidden>
+<script>
+/* mp4-muxer 5.2.2 (MIT License, Vanilagy) */
+"use strict";
+var Mp4Muxer = (() => {
+  var __defProp = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+    }
+    return to;
+  };
+  var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+  var __accessCheck = (obj, member, msg) => {
+    if (!member.has(obj))
+      throw TypeError("Cannot " + msg);
+  };
+  var __privateGet = (obj, member, getter) => {
+    __accessCheck(obj, member, "read from private field");
+    return getter ? getter.call(obj) : member.get(obj);
+  };
+  var __privateAdd = (obj, member, value) => {
+    if (member.has(obj))
+      throw TypeError("Cannot add the same private member more than once");
+    member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+  };
+  var __privateSet = (obj, member, value, setter) => {
+    __accessCheck(obj, member, "write to private field");
+    setter ? setter.call(obj, value) : member.set(obj, value);
+    return value;
+  };
+  var __privateWrapper = (obj, member, setter, getter) => ({
+    set _(value) {
+      __privateSet(obj, member, value, setter);
+    },
+    get _() {
+      return __privateGet(obj, member, getter);
+    }
+  });
+  var __privateMethod = (obj, member, method) => {
+    __accessCheck(obj, member, "access private method");
+    return method;
+  };
+
+  // src/index.ts
+  var src_exports = {};
+  __export(src_exports, {
+    ArrayBufferTarget: () => ArrayBufferTarget,
+    FileSystemWritableFileStreamTarget: () => FileSystemWritableFileStreamTarget,
+    Muxer: () => Muxer,
+    StreamTarget: () => StreamTarget
+  });
+
+  // src/misc.ts
+  var bytes = new Uint8Array(8);
+  var view = new DataView(bytes.buffer);
+  var u8 = (value) => {
+    return [(value % 256 + 256) % 256];
+  };
+  var u16 = (value) => {
+    view.setUint16(0, value, false);
+    return [bytes[0], bytes[1]];
+  };
+  var i16 = (value) => {
+    view.setInt16(0, value, false);
+    return [bytes[0], bytes[1]];
+  };
+  var u24 = (value) => {
+    view.setUint32(0, value, false);
+    return [bytes[1], bytes[2], bytes[3]];
+  };
+  var u32 = (value) => {
+    view.setUint32(0, value, false);
+    return [bytes[0], bytes[1], bytes[2], bytes[3]];
+  };
+  var i32 = (value) => {
+    view.setInt32(0, value, false);
+    return [bytes[0], bytes[1], bytes[2], bytes[3]];
+  };
+  var u64 = (value) => {
+    view.setUint32(0, Math.floor(value / 2 ** 32), false);
+    view.setUint32(4, value, false);
+    return [bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]];
+  };
+  var fixed_8_8 = (value) => {
+    view.setInt16(0, 2 ** 8 * value, false);
+    return [bytes[0], bytes[1]];
+  };
+  var fixed_16_16 = (value) => {
+    view.setInt32(0, 2 ** 16 * value, false);
+    return [bytes[0], bytes[1], bytes[2], bytes[3]];
+  };
+  var fixed_2_30 = (value) => {
+    view.setInt32(0, 2 ** 30 * value, false);
+    return [bytes[0], bytes[1], bytes[2], bytes[3]];
+  };
+  var ascii = (text, nullTerminated = false) => {
+    let bytes2 = Array(text.length).fill(null).map((_, i) => text.charCodeAt(i));
+    if (nullTerminated)
+      bytes2.push(0);
+    return bytes2;
+  };
+  var last = (arr) => {
+    return arr && arr[arr.length - 1];
+  };
+  var lastPresentedSample = (samples) => {
+    let result = void 0;
+    for (let sample of samples) {
+      if (!result || sample.presentationTimestamp > result.presentationTimestamp) {
+        result = sample;
+      }
+    }
+    return result;
+  };
+  var intoTimescale = (timeInSeconds, timescale, round = true) => {
+    let value = timeInSeconds * timescale;
+    return round ? Math.round(value) : value;
+  };
+  var rotationMatrix = (rotationInDegrees) => {
+    let theta = rotationInDegrees * (Math.PI / 180);
+    let cosTheta = Math.cos(theta);
+    let sinTheta = Math.sin(theta);
+    return [
+      cosTheta,
+      sinTheta,
+      0,
+      -sinTheta,
+      cosTheta,
+      0,
+      0,
+      0,
+      1
+    ];
+  };
+  var IDENTITY_MATRIX = rotationMatrix(0);
+  var matrixToBytes = (matrix) => {
+    return [
+      fixed_16_16(matrix[0]),
+      fixed_16_16(matrix[1]),
+      fixed_2_30(matrix[2]),
+      fixed_16_16(matrix[3]),
+      fixed_16_16(matrix[4]),
+      fixed_2_30(matrix[5]),
+      fixed_16_16(matrix[6]),
+      fixed_16_16(matrix[7]),
+      fixed_2_30(matrix[8])
+    ];
+  };
+  var deepClone = (x) => {
+    if (!x)
+      return x;
+    if (typeof x !== "object")
+      return x;
+    if (Array.isArray(x))
+      return x.map(deepClone);
+    return Object.fromEntries(Object.entries(x).map(([key, value]) => [key, deepClone(value)]));
+  };
+  var isU32 = (value) => {
+    return value >= 0 && value < 2 ** 32;
+  };
+
+  // src/box.ts
+  var box = (type, contents, children) => ({
+    type,
+    contents: contents && new Uint8Array(contents.flat(10)),
+    children
+  });
+  var fullBox = (type, version, flags, contents, children) => box(
+    type,
+    [u8(version), u24(flags), contents ?? []],
+    children
+  );
+  var ftyp = (details) => {
+    let minorVersion = 512;
+    if (details.fragmented)
+      return box("ftyp", [
+        ascii("iso5"),
+        // Major brand
+        u32(minorVersion),
+        // Minor version
+        // Compatible brands
+        ascii("iso5"),
+        ascii("iso6"),
+        ascii("mp41")
+      ]);
+    return box("ftyp", [
+      ascii("isom"),
+      // Major brand
+      u32(minorVersion),
+      // Minor version
+      // Compatible brands
+      ascii("isom"),
+      details.holdsAvc ? ascii("avc1") : [],
+      ascii("mp41")
+    ]);
+  };
+  var mdat = (reserveLargeSize) => ({ type: "mdat", largeSize: reserveLargeSize });
+  var free = (size) => ({ type: "free", size });
+  var moov = (tracks, creationTime, fragmented = false) => box("moov", null, [
+    mvhd(creationTime, tracks),
+    ...tracks.map((x) => trak(x, creationTime)),
+    fragmented ? mvex(tracks) : null
+  ]);
+  var mvhd = (creationTime, tracks) => {
+    let duration = intoTimescale(Math.max(
+      0,
+      ...tracks.filter((x) => x.samples.length > 0).map((x) => {
+        const lastSample = lastPresentedSample(x.samples);
+        return lastSample.presentationTimestamp + lastSample.duration;
+      })
+    ), GLOBAL_TIMESCALE);
+    let nextTrackId = Math.max(...tracks.map((x) => x.id)) + 1;
+    let needsU64 = !isU32(creationTime) || !isU32(duration);
+    let u32OrU64 = needsU64 ? u64 : u32;
+    return fullBox("mvhd", +needsU64, 0, [
+      u32OrU64(creationTime),
+      // Creation time
+      u32OrU64(creationTime),
+      // Modification time
+      u32(GLOBAL_TIMESCALE),
+      // Timescale
+      u32OrU64(duration),
+      // Duration
+      fixed_16_16(1),
+      // Preferred rate
+      fixed_8_8(1),
+      // Preferred volume
+      Array(10).fill(0),
+      // Reserved
+      matrixToBytes(IDENTITY_MATRIX),
+      // Matrix
+      Array(24).fill(0),
+      // Pre-defined
+      u32(nextTrackId)
+      // Next track ID
+    ]);
+  };
+  var trak = (track, creationTime) => box("trak", null, [
+    tkhd(track, creationTime),
+    mdia(track, creationTime)
+  ]);
+  var tkhd = (track, creationTime) => {
+    let lastSample = lastPresentedSample(track.samples);
+    let durationInGlobalTimescale = intoTimescale(
+      lastSample ? lastSample.presentationTimestamp + lastSample.duration : 0,
+      GLOBAL_TIMESCALE
+    );
+    let needsU64 = !isU32(creationTime) || !isU32(durationInGlobalTimescale);
+    let u32OrU64 = needsU64 ? u64 : u32;
+    let matrix;
+    if (track.info.type === "video") {
+      matrix = typeof track.info.rotation === "number" ? rotationMatrix(track.info.rotation) : track.info.rotation;
+    } else {
+      matrix = IDENTITY_MATRIX;
+    }
+    return fullBox("tkhd", +needsU64, 3, [
+      u32OrU64(creationTime),
+      // Creation time
+      u32OrU64(creationTime),
+      // Modification time
+      u32(track.id),
+      // Track ID
+      u32(0),
+      // Reserved
+      u32OrU64(durationInGlobalTimescale),
+      // Duration
+      Array(8).fill(0),
+      // Reserved
+      u16(0),
+      // Layer
+      u16(0),
+      // Alternate group
+      fixed_8_8(track.info.type === "audio" ? 1 : 0),
+      // Volume
+      u16(0),
+      // Reserved
+      matrixToBytes(matrix),
+      // Matrix
+      fixed_16_16(track.info.type === "video" ? track.info.width : 0),
+      // Track width
+      fixed_16_16(track.info.type === "video" ? track.info.height : 0)
+      // Track height
+    ]);
+  };
+  var mdia = (track, creationTime) => box("mdia", null, [
+    mdhd(track, creationTime),
+    hdlr(track.info.type === "video" ? "vide" : "soun"),
+    minf(track)
+  ]);
+  var mdhd = (track, creationTime) => {
+    let lastSample = lastPresentedSample(track.samples);
+    let localDuration = intoTimescale(
+      lastSample ? lastSample.presentationTimestamp + lastSample.duration : 0,
+      track.timescale
+    );
+    let needsU64 = !isU32(creationTime) || !isU32(localDuration);
+    let u32OrU64 = needsU64 ? u64 : u32;
+    return fullBox("mdhd", +needsU64, 0, [
+      u32OrU64(creationTime),
+      // Creation time
+      u32OrU64(creationTime),
+      // Modification time
+      u32(track.timescale),
+      // Timescale
+      u32OrU64(localDuration),
+      // Duration
+      u16(21956),
+      // Language ("und", undetermined)
+      u16(0)
+      // Quality
+    ]);
+  };
+  var hdlr = (componentSubtype) => fullBox("hdlr", 0, 0, [
+    ascii("mhlr"),
+    // Component type
+    ascii(componentSubtype),
+    // Component subtype
+    u32(0),
+    // Component manufacturer
+    u32(0),
+    // Component flags
+    u32(0),
+    // Component flags mask
+    ascii("mp4-muxer-hdlr", true)
+    // Component name
+  ]);
+  var minf = (track) => box("minf", null, [
+    track.info.type === "video" ? vmhd() : smhd(),
+    dinf(),
+    stbl(track)
+  ]);
+  var vmhd = () => fullBox("vmhd", 0, 1, [
+    u16(0),
+    // Graphics mode
+    u16(0),
+    // Opcolor R
+    u16(0),
+    // Opcolor G
+    u16(0)
+    // Opcolor B
+  ]);
+  var smhd = () => fullBox("smhd", 0, 0, [
+    u16(0),
+    // Balance
+    u16(0)
+    // Reserved
+  ]);
+  var dinf = () => box("dinf", null, [
+    dref()
+  ]);
+  var dref = () => fullBox("dref", 0, 0, [
+    u32(1)
+    // Entry count
+  ], [
+    url()
+  ]);
+  var url = () => fullBox("url ", 0, 1);
+  var stbl = (track) => {
+    const needsCtts = track.compositionTimeOffsetTable.length > 1 || track.compositionTimeOffsetTable.some((x) => x.sampleCompositionTimeOffset !== 0);
+    return box("stbl", null, [
+      stsd(track),
+      stts(track),
+      stss(track),
+      stsc(track),
+      stsz(track),
+      stco(track),
+      needsCtts ? ctts(track) : null
+    ]);
+  };
+  var stsd = (track) => fullBox("stsd", 0, 0, [
+    u32(1)
+    // Entry count
+  ], [
+    track.info.type === "video" ? videoSampleDescription(
+      VIDEO_CODEC_TO_BOX_NAME[track.info.codec],
+      track
+    ) : soundSampleDescription(
+      AUDIO_CODEC_TO_BOX_NAME[track.info.codec],
+      track
+    )
+  ]);
+  var videoSampleDescription = (compressionType, track) => box(compressionType, [
+    Array(6).fill(0),
+    // Reserved
+    u16(1),
+    // Data reference index
+    u16(0),
+    // Pre-defined
+    u16(0),
+    // Reserved
+    Array(12).fill(0),
+    // Pre-defined
+    u16(track.info.width),
+    // Width
+    u16(track.info.height),
+    // Height
+    u32(4718592),
+    // Horizontal resolution
+    u32(4718592),
+    // Vertical resolution
+    u32(0),
+    // Reserved
+    u16(1),
+    // Frame count
+    Array(32).fill(0),
+    // Compressor name
+    u16(24),
+    // Depth
+    i16(65535)
+    // Pre-defined
+  ], [
+    VIDEO_CODEC_TO_CONFIGURATION_BOX[track.info.codec](track),
+    track.info.decoderConfig.colorSpace ? colr(track) : null
+  ]);
+  var COLOR_PRIMARIES_MAP = {
+    "bt709": 1,
+    // ITU-R BT.709
+    "bt470bg": 5,
+    // ITU-R BT.470BG
+    "smpte170m": 6
+    // ITU-R BT.601 525 - SMPTE 170M
+  };
+  var TRANSFER_CHARACTERISTICS_MAP = {
+    "bt709": 1,
+    // ITU-R BT.709
+    "smpte170m": 6,
+    // SMPTE 170M
+    "iec61966-2-1": 13
+    // IEC 61966-2-1
+  };
+  var MATRIX_COEFFICIENTS_MAP = {
+    "rgb": 0,
+    // Identity
+    "bt709": 1,
+    // ITU-R BT.709
+    "bt470bg": 5,
+    // ITU-R BT.470BG
+    "smpte170m": 6
+    // SMPTE 170M
+  };
+  var colr = (track) => box("colr", [
+    ascii("nclx"),
+    // Colour type
+    u16(COLOR_PRIMARIES_MAP[track.info.decoderConfig.colorSpace.primaries]),
+    // Colour primaries
+    u16(TRANSFER_CHARACTERISTICS_MAP[track.info.decoderConfig.colorSpace.transfer]),
+    // Transfer characteristics
+    u16(MATRIX_COEFFICIENTS_MAP[track.info.decoderConfig.colorSpace.matrix]),
+    // Matrix coefficients
+    u8((track.info.decoderConfig.colorSpace.fullRange ? 1 : 0) << 7)
+    // Full range flag
+  ]);
+  var avcC = (track) => track.info.decoderConfig && box("avcC", [
+    // For AVC, description is an AVCDecoderConfigurationRecord, so nothing else to do here
+    ...new Uint8Array(track.info.decoderConfig.description)
+  ]);
+  var hvcC = (track) => track.info.decoderConfig && box("hvcC", [
+    // For HEVC, description is a HEVCDecoderConfigurationRecord, so nothing else to do here
+    ...new Uint8Array(track.info.decoderConfig.description)
+  ]);
+  var vpcC = (track) => {
+    if (!track.info.decoderConfig) {
+      return null;
+    }
+    let decoderConfig = track.info.decoderConfig;
+    if (!decoderConfig.colorSpace) {
+      throw new Error(`'colorSpace' is required in the decoder config for VP9.`);
+    }
+    let parts = decoderConfig.codec.split(".");
+    let profile = Number(parts[1]);
+    let level = Number(parts[2]);
+    let bitDepth = Number(parts[3]);
+    let chromaSubsampling = 0;
+    let thirdByte = (bitDepth << 4) + (chromaSubsampling << 1) + Number(decoderConfig.colorSpace.fullRange);
+    let colourPrimaries = 2;
+    let transferCharacteristics = 2;
+    let matrixCoefficients = 2;
+    return fullBox("vpcC", 1, 0, [
+      u8(profile),
+      // Profile
+      u8(level),
+      // Level
+      u8(thirdByte),
+      // Bit depth, chroma subsampling, full range
+      u8(colourPrimaries),
+      // Colour primaries
+      u8(transferCharacteristics),
+      // Transfer characteristics
+      u8(matrixCoefficients),
+      // Matrix coefficients
+      u16(0)
+      // Codec initialization data size
+    ]);
+  };
+  var av1C = () => {
+    let marker = 1;
+    let version = 1;
+    let firstByte = (marker << 7) + version;
+    return box("av1C", [
+      firstByte,
+      0,
+      0,
+      0
+    ]);
+  };
+  var soundSampleDescription = (compressionType, track) => box(compressionType, [
+    Array(6).fill(0),
+    // Reserved
+    u16(1),
+    // Data reference index
+    u16(0),
+    // Version
+    u16(0),
+    // Revision level
+    u32(0),
+    // Vendor
+    u16(track.info.numberOfChannels),
+    // Number of channels
+    u16(16),
+    // Sample size (bits)
+    u16(0),
+    // Compression ID
+    u16(0),
+    // Packet size
+    fixed_16_16(track.info.sampleRate)
+    // Sample rate
+  ], [
+    AUDIO_CODEC_TO_CONFIGURATION_BOX[track.info.codec](track)
+  ]);
+  var esds = (track) => {
+    let description = new Uint8Array(track.info.decoderConfig.description);
+    return fullBox("esds", 0, 0, [
+      // https://stackoverflow.com/a/54803118
+      u32(58753152),
+      // TAG(3) = Object Descriptor ([2])
+      u8(32 + description.byteLength),
+      // length of this OD (which includes the next 2 tags)
+      u16(1),
+      // ES_ID = 1
+      u8(0),
+      // flags etc = 0
+      u32(75530368),
+      // TAG(4) = ES Descriptor ([2]) embedded in above OD
+      u8(18 + description.byteLength),
+      // length of this ESD
+      u8(64),
+      // MPEG-4 Audio
+      u8(21),
+      // stream type(6bits)=5 audio, flags(2bits)=1
+      u24(0),
+      // 24bit buffer size
+      u32(130071),
+      // max bitrate
+      u32(130071),
+      // avg bitrate
+      u32(92307584),
+      // TAG(5) = ASC ([2],[3]) embedded in above OD
+      u8(description.byteLength),
+      // length
+      ...description,
+      u32(109084800),
+      // TAG(6)
+      u8(1),
+      // length
+      u8(2)
+      // data
+    ]);
+  };
+  var dOps = (track) => {
+    let preskip = 3840;
+    let gain = 0;
+    const description = track.info.decoderConfig?.description;
+    if (description) {
+      if (description.byteLength < 18) {
+        throw new TypeError("Invalid decoder description provided for Opus; must be at least 18 bytes long.");
+      }
+      const view2 = ArrayBuffer.isView(description) ? new DataView(description.buffer, description.byteOffset, description.byteLength) : new DataView(description);
+      preskip = view2.getUint16(10, true);
+      gain = view2.getInt16(14, true);
+    }
+    return box("dOps", [
+      u8(0),
+      // Version
+      u8(track.info.numberOfChannels),
+      // OutputChannelCount
+      u16(preskip),
+      u32(track.info.sampleRate),
+      // InputSampleRate
+      fixed_8_8(gain),
+      // OutputGain
+      u8(0)
+      // ChannelMappingFamily
+    ]);
+  };
+  var stts = (track) => {
+    return fullBox("stts", 0, 0, [
+      u32(track.timeToSampleTable.length),
+      // Number of entries
+      track.timeToSampleTable.map((x) => [
+        // Time-to-sample table
+        u32(x.sampleCount),
+        // Sample count
+        u32(x.sampleDelta)
+        // Sample duration
+      ])
+    ]);
+  };
+  var stss = (track) => {
+    if (track.samples.every((x) => x.type === "key"))
+      return null;
+    let keySamples = [...track.samples.entries()].filter(([, sample]) => sample.type === "key");
+    return fullBox("stss", 0, 0, [
+      u32(keySamples.length),
+      // Number of entries
+      keySamples.map(([index]) => u32(index + 1))
+      // Sync sample table
+    ]);
+  };
+  var stsc = (track) => {
+    return fullBox("stsc", 0, 0, [
+      u32(track.compactlyCodedChunkTable.length),
+      // Number of entries
+      track.compactlyCodedChunkTable.map((x) => [
+        // Sample-to-chunk table
+        u32(x.firstChunk),
+        // First chunk
+        u32(x.samplesPerChunk),
+        // Samples per chunk
+        u32(1)
+        // Sample description index
+      ])
+    ]);
+  };
+  var stsz = (track) => fullBox("stsz", 0, 0, [
+    u32(0),
+    // Sample size (0 means non-constant size)
+    u32(track.samples.length),
+    // Number of entries
+    track.samples.map((x) => u32(x.size))
+    // Sample size table
+  ]);
+  var stco = (track) => {
+    if (track.finalizedChunks.length > 0 && last(track.finalizedChunks).offset >= 2 ** 32) {
+      return fullBox("co64", 0, 0, [
+        u32(track.finalizedChunks.length),
+        // Number of entries
+        track.finalizedChunks.map((x) => u64(x.offset))
+        // Chunk offset table
+      ]);
+    }
+    return fullBox("stco", 0, 0, [
+      u32(track.finalizedChunks.length),
+      // Number of entries
+      track.finalizedChunks.map((x) => u32(x.offset))
+      // Chunk offset table
+    ]);
+  };
+  var ctts = (track) => {
+    return fullBox("ctts", 0, 0, [
+      u32(track.compositionTimeOffsetTable.length),
+      // Number of entries
+      track.compositionTimeOffsetTable.map((x) => [
+        // Time-to-sample table
+        u32(x.sampleCount),
+        // Sample count
+        u32(x.sampleCompositionTimeOffset)
+        // Sample offset
+      ])
+    ]);
+  };
+  var mvex = (tracks) => {
+    return box("mvex", null, tracks.map(trex));
+  };
+  var trex = (track) => {
+    return fullBox("trex", 0, 0, [
+      u32(track.id),
+      // Track ID
+      u32(1),
+      // Default sample description index
+      u32(0),
+      // Default sample duration
+      u32(0),
+      // Default sample size
+      u32(0)
+      // Default sample flags
+    ]);
+  };
+  var moof = (sequenceNumber, tracks) => {
+    return box("moof", null, [
+      mfhd(sequenceNumber),
+      ...tracks.map(traf)
+    ]);
+  };
+  var mfhd = (sequenceNumber) => {
+    return fullBox("mfhd", 0, 0, [
+      u32(sequenceNumber)
+      // Sequence number
+    ]);
+  };
+  var fragmentSampleFlags = (sample) => {
+    let byte1 = 0;
+    let byte2 = 0;
+    let byte3 = 0;
+    let byte4 = 0;
+    let sampleIsDifferenceSample = sample.type === "delta";
+    byte2 |= +sampleIsDifferenceSample;
+    if (sampleIsDifferenceSample) {
+      byte1 |= 1;
+    } else {
+      byte1 |= 2;
+    }
+    return byte1 << 24 | byte2 << 16 | byte3 << 8 | byte4;
+  };
+  var traf = (track) => {
+    return box("traf", null, [
+      tfhd(track),
+      tfdt(track),
+      trun(track)
+    ]);
+  };
+  var tfhd = (track) => {
+    let tfFlags = 0;
+    tfFlags |= 8;
+    tfFlags |= 16;
+    tfFlags |= 32;
+    tfFlags |= 131072;
+    let referenceSample = track.currentChunk.samples[1] ?? track.currentChunk.samples[0];
+    let referenceSampleInfo = {
+      duration: referenceSample.timescaleUnitsToNextSample,
+      size: referenceSample.size,
+      flags: fragmentSampleFlags(referenceSample)
+    };
+    return fullBox("tfhd", 0, tfFlags, [
+      u32(track.id),
+      // Track ID
+      u32(referenceSampleInfo.duration),
+      // Default sample duration
+      u32(referenceSampleInfo.size),
+      // Default sample size
+      u32(referenceSampleInfo.flags)
+      // Default sample flags
+    ]);
+  };
+  var tfdt = (track) => {
+    return fullBox("tfdt", 1, 0, [
+      u64(intoTimescale(track.currentChunk.startTimestamp, track.timescale))
+      // Base Media Decode Time
+    ]);
+  };
+  var trun = (track) => {
+    let allSampleDurations = track.currentChunk.samples.map((x) => x.timescaleUnitsToNextSample);
+    let allSampleSizes = track.currentChunk.samples.map((x) => x.size);
+    let allSampleFlags = track.currentChunk.samples.map(fragmentSampleFlags);
+    let allSampleCompositionTimeOffsets = track.currentChunk.samples.map((x) => intoTimescale(x.presentationTimestamp - x.decodeTimestamp, track.timescale));
+    let uniqueSampleDurations = new Set(allSampleDurations);
+    let uniqueSampleSizes = new Set(allSampleSizes);
+    let uniqueSampleFlags = new Set(allSampleFlags);
+    let uniqueSampleCompositionTimeOffsets = new Set(allSampleCompositionTimeOffsets);
+    let firstSampleFlagsPresent = uniqueSampleFlags.size === 2 && allSampleFlags[0] !== allSampleFlags[1];
+    let sampleDurationPresent = uniqueSampleDurations.size > 1;
+    let sampleSizePresent = uniqueSampleSizes.size > 1;
+    let sampleFlagsPresent = !firstSampleFlagsPresent && uniqueSampleFlags.size > 1;
+    let sampleCompositionTimeOffsetsPresent = uniqueSampleCompositionTimeOffsets.size > 1 || [...uniqueSampleCompositionTimeOffsets].some((x) => x !== 0);
+    let flags = 0;
+    flags |= 1;
+    flags |= 4 * +firstSampleFlagsPresent;
+    flags |= 256 * +sampleDurationPresent;
+    flags |= 512 * +sampleSizePresent;
+    flags |= 1024 * +sampleFlagsPresent;
+    flags |= 2048 * +sampleCompositionTimeOffsetsPresent;
+    return fullBox("trun", 1, flags, [
+      u32(track.currentChunk.samples.length),
+      // Sample count
+      u32(track.currentChunk.offset - track.currentChunk.moofOffset || 0),
+      // Data offset
+      firstSampleFlagsPresent ? u32(allSampleFlags[0]) : [],
+      track.currentChunk.samples.map((_, i) => [
+        sampleDurationPresent ? u32(allSampleDurations[i]) : [],
+        // Sample duration
+        sampleSizePresent ? u32(allSampleSizes[i]) : [],
+        // Sample size
+        sampleFlagsPresent ? u32(allSampleFlags[i]) : [],
+        // Sample flags
+        // Sample composition time offsets
+        sampleCompositionTimeOffsetsPresent ? i32(allSampleCompositionTimeOffsets[i]) : []
+      ])
+    ]);
+  };
+  var mfra = (tracks) => {
+    return box("mfra", null, [
+      ...tracks.map(tfra),
+      mfro()
+    ]);
+  };
+  var tfra = (track, trackIndex) => {
+    let version = 1;
+    return fullBox("tfra", version, 0, [
+      u32(track.id),
+      // Track ID
+      u32(63),
+      // This specifies that traf number, trun number and sample number are 32-bit ints
+      u32(track.finalizedChunks.length),
+      // Number of entries
+      track.finalizedChunks.map((chunk) => [
+        u64(intoTimescale(chunk.startTimestamp, track.timescale)),
+        // Time
+        u64(chunk.moofOffset),
+        // moof offset
+        u32(trackIndex + 1),
+        // traf number
+        u32(1),
+        // trun number
+        u32(1)
+        // Sample number
+      ])
+    ]);
+  };
+  var mfro = () => {
+    return fullBox("mfro", 0, 0, [
+      // This value needs to be overwritten manually from the outside, where the actual size of the enclosing mfra box
+      // is known
+      u32(0)
+      // Size
+    ]);
+  };
+  var VIDEO_CODEC_TO_BOX_NAME = {
+    "avc": "avc1",
+    "hevc": "hvc1",
+    "vp9": "vp09",
+    "av1": "av01"
+  };
+  var VIDEO_CODEC_TO_CONFIGURATION_BOX = {
+    "avc": avcC,
+    "hevc": hvcC,
+    "vp9": vpcC,
+    "av1": av1C
+  };
+  var AUDIO_CODEC_TO_BOX_NAME = {
+    "aac": "mp4a",
+    "opus": "Opus"
+  };
+  var AUDIO_CODEC_TO_CONFIGURATION_BOX = {
+    "aac": esds,
+    "opus": dOps
+  };
+
+  // src/target.ts
+  var isTarget = Symbol("isTarget");
+  var Target = class {
+  };
+  isTarget;
+  var ArrayBufferTarget = class extends Target {
+    constructor() {
+      super(...arguments);
+      this.buffer = null;
+    }
+  };
+  var StreamTarget = class extends Target {
+    constructor(options) {
+      super();
+      this.options = options;
+      if (typeof options !== "object") {
+        throw new TypeError("StreamTarget requires an options object to be passed to its constructor.");
+      }
+      if (options.onData) {
+        if (typeof options.onData !== "function") {
+          throw new TypeError("options.onData, when provided, must be a function.");
+        }
+        if (options.onData.length < 2) {
+          throw new TypeError(
+            "options.onData, when provided, must be a function that takes in at least two arguments (data and position). Ignoring the position argument, which specifies the byte offset at which the data is to be written, can lead to broken outputs."
+          );
+        }
+      }
+      if (options.chunked !== void 0 && typeof options.chunked !== "boolean") {
+        throw new TypeError("options.chunked, when provided, must be a boolean.");
+      }
+      if (options.chunkSize !== void 0 && (!Number.isInteger(options.chunkSize) || options.chunkSize < 1024)) {
+        throw new TypeError("options.chunkSize, when provided, must be an integer and not smaller than 1024.");
+      }
+    }
+  };
+  var FileSystemWritableFileStreamTarget = class extends Target {
+    constructor(stream, options) {
+      super();
+      this.stream = stream;
+      this.options = options;
+      if (!(stream instanceof FileSystemWritableFileStream)) {
+        throw new TypeError("FileSystemWritableFileStreamTarget requires a FileSystemWritableFileStream instance.");
+      }
+      if (options !== void 0 && typeof options !== "object") {
+        throw new TypeError("FileSystemWritableFileStreamTarget's options, when provided, must be an object.");
+      }
+      if (options) {
+        if (options.chunkSize !== void 0 && (!Number.isInteger(options.chunkSize) || options.chunkSize <= 0)) {
+          throw new TypeError("options.chunkSize, when provided, must be a positive integer");
+        }
+      }
+    }
+  };
+
+  // src/writer.ts
+  var _helper, _helperView;
+  var Writer = class {
+    constructor() {
+      this.pos = 0;
+      __privateAdd(this, _helper, new Uint8Array(8));
+      __privateAdd(this, _helperView, new DataView(__privateGet(this, _helper).buffer));
+      /**
+       * Stores the position from the start of the file to where boxes elements have been written. This is used to
+       * rewrite/edit elements that were already added before, and to measure sizes of things.
+       */
+      this.offsets = /* @__PURE__ */ new WeakMap();
+    }
+    /** Sets the current position for future writes to a new one. */
+    seek(newPos) {
+      this.pos = newPos;
+    }
+    writeU32(value) {
+      __privateGet(this, _helperView).setUint32(0, value, false);
+      this.write(__privateGet(this, _helper).subarray(0, 4));
+    }
+    writeU64(value) {
+      __privateGet(this, _helperView).setUint32(0, Math.floor(value / 2 ** 32), false);
+      __privateGet(this, _helperView).setUint32(4, value, false);
+      this.write(__privateGet(this, _helper).subarray(0, 8));
+    }
+    writeAscii(text) {
+      for (let i = 0; i < text.length; i++) {
+        __privateGet(this, _helperView).setUint8(i % 8, text.charCodeAt(i));
+        if (i % 8 === 7)
+          this.write(__privateGet(this, _helper));
+      }
+      if (text.length % 8 !== 0) {
+        this.write(__privateGet(this, _helper).subarray(0, text.length % 8));
+      }
+    }
+    writeBox(box2) {
+      this.offsets.set(box2, this.pos);
+      if (box2.contents && !box2.children) {
+        this.writeBoxHeader(box2, box2.size ?? box2.contents.byteLength + 8);
+        this.write(box2.contents);
+      } else {
+        let startPos = this.pos;
+        this.writeBoxHeader(box2, 0);
+        if (box2.contents)
+          this.write(box2.contents);
+        if (box2.children) {
+          for (let child of box2.children)
+            if (child)
+              this.writeBox(child);
+        }
+        let endPos = this.pos;
+        let size = box2.size ?? endPos - startPos;
+        this.seek(startPos);
+        this.writeBoxHeader(box2, size);
+        this.seek(endPos);
+      }
+    }
+    writeBoxHeader(box2, size) {
+      this.writeU32(box2.largeSize ? 1 : size);
+      this.writeAscii(box2.type);
+      if (box2.largeSize)
+        this.writeU64(size);
+    }
+    measureBoxHeader(box2) {
+      return 8 + (box2.largeSize ? 8 : 0);
+    }
+    patchBox(box2) {
+      let endPos = this.pos;
+      this.seek(this.offsets.get(box2));
+      this.writeBox(box2);
+      this.seek(endPos);
+    }
+    measureBox(box2) {
+      if (box2.contents && !box2.children) {
+        let headerSize = this.measureBoxHeader(box2);
+        return headerSize + box2.contents.byteLength;
+      } else {
+        let result = this.measureBoxHeader(box2);
+        if (box2.contents)
+          result += box2.contents.byteLength;
+        if (box2.children) {
+          for (let child of box2.children)
+            if (child)
+              result += this.measureBox(child);
+        }
+        return result;
+      }
+    }
+  };
+  _helper = new WeakMap();
+  _helperView = new WeakMap();
+  var _target, _buffer, _bytes, _maxPos, _ensureSize, ensureSize_fn;
+  var ArrayBufferTargetWriter = class extends Writer {
+    constructor(target) {
+      super();
+      __privateAdd(this, _ensureSize);
+      __privateAdd(this, _target, void 0);
+      __privateAdd(this, _buffer, new ArrayBuffer(2 ** 16));
+      __privateAdd(this, _bytes, new Uint8Array(__privateGet(this, _buffer)));
+      __privateAdd(this, _maxPos, 0);
+      __privateSet(this, _target, target);
+    }
+    write(data) {
+      __privateMethod(this, _ensureSize, ensureSize_fn).call(this, this.pos + data.byteLength);
+      __privateGet(this, _bytes).set(data, this.pos);
+      this.pos += data.byteLength;
+      __privateSet(this, _maxPos, Math.max(__privateGet(this, _maxPos), this.pos));
+    }
+    finalize() {
+      __privateMethod(this, _ensureSize, ensureSize_fn).call(this, this.pos);
+      __privateGet(this, _target).buffer = __privateGet(this, _buffer).slice(0, Math.max(__privateGet(this, _maxPos), this.pos));
+    }
+  };
+  _target = new WeakMap();
+  _buffer = new WeakMap();
+  _bytes = new WeakMap();
+  _maxPos = new WeakMap();
+  _ensureSize = new WeakSet();
+  ensureSize_fn = function(size) {
+    let newLength = __privateGet(this, _buffer).byteLength;
+    while (newLength < size)
+      newLength *= 2;
+    if (newLength === __privateGet(this, _buffer).byteLength)
+      return;
+    let newBuffer = new ArrayBuffer(newLength);
+    let newBytes = new Uint8Array(newBuffer);
+    newBytes.set(__privateGet(this, _bytes), 0);
+    __privateSet(this, _buffer, newBuffer);
+    __privateSet(this, _bytes, newBytes);
+  };
+  var DEFAULT_CHUNK_SIZE = 2 ** 24;
+  var MAX_CHUNKS_AT_ONCE = 2;
+  var _target2, _sections, _chunked, _chunkSize, _chunks, _writeDataIntoChunks, writeDataIntoChunks_fn, _insertSectionIntoChunk, insertSectionIntoChunk_fn, _createChunk, createChunk_fn, _flushChunks, flushChunks_fn;
+  var StreamTargetWriter = class extends Writer {
+    constructor(target) {
+      super();
+      __privateAdd(this, _writeDataIntoChunks);
+      __privateAdd(this, _insertSectionIntoChunk);
+      __privateAdd(this, _createChunk);
+      __privateAdd(this, _flushChunks);
+      __privateAdd(this, _target2, void 0);
+      __privateAdd(this, _sections, []);
+      __privateAdd(this, _chunked, void 0);
+      __privateAdd(this, _chunkSize, void 0);
+      /**
+       * The data is divided up into fixed-size chunks, whose contents are first filled in RAM and then flushed out.
+       * A chunk is flushed if all of its contents have been written.
+       */
+      __privateAdd(this, _chunks, []);
+      __privateSet(this, _target2, target);
+      __privateSet(this, _chunked, target.options?.chunked ?? false);
+      __privateSet(this, _chunkSize, target.options?.chunkSize ?? DEFAULT_CHUNK_SIZE);
+    }
+    write(data) {
+      __privateGet(this, _sections).push({
+        data: data.slice(),
+        start: this.pos
+      });
+      this.pos += data.byteLength;
+    }
+    flush() {
+      if (__privateGet(this, _sections).length === 0)
+        return;
+      let chunks = [];
+      let sorted = [...__privateGet(this, _sections)].sort((a, b) => a.start - b.start);
+      chunks.push({
+        start: sorted[0].start,
+        size: sorted[0].data.byteLength
+      });
+      for (let i = 1; i < sorted.length; i++) {
+        let lastChunk = chunks[chunks.length - 1];
+        let section = sorted[i];
+        if (section.start <= lastChunk.start + lastChunk.size) {
+          lastChunk.size = Math.max(lastChunk.size, section.start + section.data.byteLength - lastChunk.start);
+        } else {
+          chunks.push({
+            start: section.start,
+            size: section.data.byteLength
+          });
+        }
+      }
+      for (let chunk of chunks) {
+        chunk.data = new Uint8Array(chunk.size);
+        for (let section of __privateGet(this, _sections)) {
+          if (chunk.start <= section.start && section.start < chunk.start + chunk.size) {
+            chunk.data.set(section.data, section.start - chunk.start);
+          }
+        }
+        if (__privateGet(this, _chunked)) {
+          __privateMethod(this, _writeDataIntoChunks, writeDataIntoChunks_fn).call(this, chunk.data, chunk.start);
+          __privateMethod(this, _flushChunks, flushChunks_fn).call(this);
+        } else {
+          __privateGet(this, _target2).options.onData?.(chunk.data, chunk.start);
+        }
+      }
+      __privateGet(this, _sections).length = 0;
+    }
+    finalize() {
+      if (__privateGet(this, _chunked)) {
+        __privateMethod(this, _flushChunks, flushChunks_fn).call(this, true);
+      }
+    }
+  };
+  _target2 = new WeakMap();
+  _sections = new WeakMap();
+  _chunked = new WeakMap();
+  _chunkSize = new WeakMap();
+  _chunks = new WeakMap();
+  _writeDataIntoChunks = new WeakSet();
+  writeDataIntoChunks_fn = function(data, position) {
+    let chunkIndex = __privateGet(this, _chunks).findIndex((x) => x.start <= position && position < x.start + __privateGet(this, _chunkSize));
+    if (chunkIndex === -1)
+      chunkIndex = __privateMethod(this, _createChunk, createChunk_fn).call(this, position);
+    let chunk = __privateGet(this, _chunks)[chunkIndex];
+    let relativePosition = position - chunk.start;
+    let toWrite = data.subarray(0, Math.min(__privateGet(this, _chunkSize) - relativePosition, data.byteLength));
+    chunk.data.set(toWrite, relativePosition);
+    let section = {
+      start: relativePosition,
+      end: relativePosition + toWrite.byteLength
+    };
+    __privateMethod(this, _insertSectionIntoChunk, insertSectionIntoChunk_fn).call(this, chunk, section);
+    if (chunk.written[0].start === 0 && chunk.written[0].end === __privateGet(this, _chunkSize)) {
+      chunk.shouldFlush = true;
+    }
+    if (__privateGet(this, _chunks).length > MAX_CHUNKS_AT_ONCE) {
+      for (let i = 0; i < __privateGet(this, _chunks).length - 1; i++) {
+        __privateGet(this, _chunks)[i].shouldFlush = true;
+      }
+      __privateMethod(this, _flushChunks, flushChunks_fn).call(this);
+    }
+    if (toWrite.byteLength < data.byteLength) {
+      __privateMethod(this, _writeDataIntoChunks, writeDataIntoChunks_fn).call(this, data.subarray(toWrite.byteLength), position + toWrite.byteLength);
+    }
+  };
+  _insertSectionIntoChunk = new WeakSet();
+  insertSectionIntoChunk_fn = function(chunk, section) {
+    let low = 0;
+    let high = chunk.written.length - 1;
+    let index = -1;
+    while (low <= high) {
+      let mid = Math.floor(low + (high - low + 1) / 2);
+      if (chunk.written[mid].start <= section.start) {
+        low = mid + 1;
+        index = mid;
+      } else {
+        high = mid - 1;
+      }
+    }
+    chunk.written.splice(index + 1, 0, section);
+    if (index === -1 || chunk.written[index].end < section.start)
+      index++;
+    while (index < chunk.written.length - 1 && chunk.written[index].end >= chunk.written[index + 1].start) {
+      chunk.written[index].end = Math.max(chunk.written[index].end, chunk.written[index + 1].end);
+      chunk.written.splice(index + 1, 1);
+    }
+  };
+  _createChunk = new WeakSet();
+  createChunk_fn = function(includesPosition) {
+    let start = Math.floor(includesPosition / __privateGet(this, _chunkSize)) * __privateGet(this, _chunkSize);
+    let chunk = {
+      start,
+      data: new Uint8Array(__privateGet(this, _chunkSize)),
+      written: [],
+      shouldFlush: false
+    };
+    __privateGet(this, _chunks).push(chunk);
+    __privateGet(this, _chunks).sort((a, b) => a.start - b.start);
+    return __privateGet(this, _chunks).indexOf(chunk);
+  };
+  _flushChunks = new WeakSet();
+  flushChunks_fn = function(force = false) {
+    for (let i = 0; i < __privateGet(this, _chunks).length; i++) {
+      let chunk = __privateGet(this, _chunks)[i];
+      if (!chunk.shouldFlush && !force)
+        continue;
+      for (let section of chunk.written) {
+        __privateGet(this, _target2).options.onData?.(
+          chunk.data.subarray(section.start, section.end),
+          chunk.start + section.start
+        );
+      }
+      __privateGet(this, _chunks).splice(i--, 1);
+    }
+  };
+  var FileSystemWritableFileStreamTargetWriter = class extends StreamTargetWriter {
+    constructor(target) {
+      super(new StreamTarget({
+        onData: (data, position) => target.stream.write({
+          type: "write",
+          data,
+          position
+        }),
+        chunked: true,
+        chunkSize: target.options?.chunkSize
+      }));
+    }
+  };
+
+  // src/muxer.ts
+  var GLOBAL_TIMESCALE = 1e3;
+  var SUPPORTED_VIDEO_CODECS = ["avc", "hevc", "vp9", "av1"];
+  var SUPPORTED_AUDIO_CODECS = ["aac", "opus"];
+  var TIMESTAMP_OFFSET = 2082844800;
+  var FIRST_TIMESTAMP_BEHAVIORS = ["strict", "offset", "cross-track-offset"];
+  var _options, _writer, _ftypSize, _mdat, _videoTrack, _audioTrack, _creationTime, _finalizedChunks, _nextFragmentNumber, _videoSampleQueue, _audioSampleQueue, _finalized, _validateOptions, validateOptions_fn, _writeHeader, writeHeader_fn, _computeMoovSizeUpperBound, computeMoovSizeUpperBound_fn, _prepareTracks, prepareTracks_fn, _generateMpeg4AudioSpecificConfig, generateMpeg4AudioSpecificConfig_fn, _createSampleForTrack, createSampleForTrack_fn, _addSampleToTrack, addSampleToTrack_fn, _validateTimestamp, validateTimestamp_fn, _finalizeCurrentChunk, finalizeCurrentChunk_fn, _finalizeFragment, finalizeFragment_fn, _maybeFlushStreamingTargetWriter, maybeFlushStreamingTargetWriter_fn, _ensureNotFinalized, ensureNotFinalized_fn;
+  var Muxer = class {
+    constructor(options) {
+      __privateAdd(this, _validateOptions);
+      __privateAdd(this, _writeHeader);
+      __privateAdd(this, _computeMoovSizeUpperBound);
+      __privateAdd(this, _prepareTracks);
+      // https://wiki.multimedia.cx/index.php/MPEG-4_Audio
+      __privateAdd(this, _generateMpeg4AudioSpecificConfig);
+      __privateAdd(this, _createSampleForTrack);
+      __privateAdd(this, _addSampleToTrack);
+      __privateAdd(this, _validateTimestamp);
+      __privateAdd(this, _finalizeCurrentChunk);
+      __privateAdd(this, _finalizeFragment);
+      __privateAdd(this, _maybeFlushStreamingTargetWriter);
+      __privateAdd(this, _ensureNotFinalized);
+      __privateAdd(this, _options, void 0);
+      __privateAdd(this, _writer, void 0);
+      __privateAdd(this, _ftypSize, void 0);
+      __privateAdd(this, _mdat, void 0);
+      __privateAdd(this, _videoTrack, null);
+      __privateAdd(this, _audioTrack, null);
+      __privateAdd(this, _creationTime, Math.floor(Date.now() / 1e3) + TIMESTAMP_OFFSET);
+      __privateAdd(this, _finalizedChunks, []);
+      // Fields for fragmented MP4:
+      __privateAdd(this, _nextFragmentNumber, 1);
+      __privateAdd(this, _videoSampleQueue, []);
+      __privateAdd(this, _audioSampleQueue, []);
+      __privateAdd(this, _finalized, false);
+      __privateMethod(this, _validateOptions, validateOptions_fn).call(this, options);
+      options.video = deepClone(options.video);
+      options.audio = deepClone(options.audio);
+      options.fastStart = deepClone(options.fastStart);
+      this.target = options.target;
+      __privateSet(this, _options, {
+        firstTimestampBehavior: "strict",
+        ...options
+      });
+      if (options.target instanceof ArrayBufferTarget) {
+        __privateSet(this, _writer, new ArrayBufferTargetWriter(options.target));
+      } else if (options.target instanceof StreamTarget) {
+        __privateSet(this, _writer, new StreamTargetWriter(options.target));
+      } else if (options.target instanceof FileSystemWritableFileStreamTarget) {
+        __privateSet(this, _writer, new FileSystemWritableFileStreamTargetWriter(options.target));
+      } else {
+        throw new Error(`Invalid target: ${options.target}`);
+      }
+      __privateMethod(this, _prepareTracks, prepareTracks_fn).call(this);
+      __privateMethod(this, _writeHeader, writeHeader_fn).call(this);
+    }
+    addVideoChunk(sample, meta, timestamp, compositionTimeOffset) {
+      if (!(sample instanceof EncodedVideoChunk)) {
+        throw new TypeError("addVideoChunk's first argument (sample) must be of type EncodedVideoChunk.");
+      }
+      if (meta && typeof meta !== "object") {
+        throw new TypeError("addVideoChunk's second argument (meta), when provided, must be an object.");
+      }
+      if (timestamp !== void 0 && (!Number.isFinite(timestamp) || timestamp < 0)) {
+        throw new TypeError(
+          "addVideoChunk's third argument (timestamp), when provided, must be a non-negative real number."
+        );
+      }
+      if (compositionTimeOffset !== void 0 && !Number.isFinite(compositionTimeOffset)) {
+        throw new TypeError(
+          "addVideoChunk's fourth argument (compositionTimeOffset), when provided, must be a real number."
+        );
+      }
+      let data = new Uint8Array(sample.byteLength);
+      sample.copyTo(data);
+      this.addVideoChunkRaw(
+        data,
+        sample.type,
+        timestamp ?? sample.timestamp,
+        sample.duration,
+        meta,
+        compositionTimeOffset
+      );
+    }
+    addVideoChunkRaw(data, type, timestamp, duration, meta, compositionTimeOffset) {
+      if (!(data instanceof Uint8Array)) {
+        throw new TypeError("addVideoChunkRaw's first argument (data) must be an instance of Uint8Array.");
+      }
+      if (type !== "key" && type !== "delta") {
+        throw new TypeError("addVideoChunkRaw's second argument (type) must be either 'key' or 'delta'.");
+      }
+      if (!Number.isFinite(timestamp) || timestamp < 0) {
+        throw new TypeError("addVideoChunkRaw's third argument (timestamp) must be a non-negative real number.");
+      }
+      if (!Number.isFinite(duration) || duration < 0) {
+        throw new TypeError("addVideoChunkRaw's fourth argument (duration) must be a non-negative real number.");
+      }
+      if (meta && typeof meta !== "object") {
+        throw new TypeError("addVideoChunkRaw's fifth argument (meta), when provided, must be an object.");
+      }
+      if (compositionTimeOffset !== void 0 && !Number.isFinite(compositionTimeOffset)) {
+        throw new TypeError(
+          "addVideoChunkRaw's sixth argument (compositionTimeOffset), when provided, must be a real number."
+        );
+      }
+      __privateMethod(this, _ensureNotFinalized, ensureNotFinalized_fn).call(this);
+      if (!__privateGet(this, _options).video)
+        throw new Error("No video track declared.");
+      if (typeof __privateGet(this, _options).fastStart === "object" && __privateGet(this, _videoTrack).samples.length === __privateGet(this, _options).fastStart.expectedVideoChunks) {
+        throw new Error(`Cannot add more video chunks than specified in 'fastStart' (${__privateGet(this, _options).fastStart.expectedVideoChunks}).`);
+      }
+      let videoSample = __privateMethod(this, _createSampleForTrack, createSampleForTrack_fn).call(this, __privateGet(this, _videoTrack), data, type, timestamp, duration, meta, compositionTimeOffset);
+      if (__privateGet(this, _options).fastStart === "fragmented" && __privateGet(this, _audioTrack)) {
+        while (__privateGet(this, _audioSampleQueue).length > 0 && __privateGet(this, _audioSampleQueue)[0].decodeTimestamp <= videoSample.decodeTimestamp) {
+          let audioSample = __privateGet(this, _audioSampleQueue).shift();
+          __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _audioTrack), audioSample);
+        }
+        if (videoSample.decodeTimestamp <= __privateGet(this, _audioTrack).lastDecodeTimestamp) {
+          __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _videoTrack), videoSample);
+        } else {
+          __privateGet(this, _videoSampleQueue).push(videoSample);
+        }
+      } else {
+        __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _videoTrack), videoSample);
+      }
+    }
+    addAudioChunk(sample, meta, timestamp) {
+      if (!(sample instanceof EncodedAudioChunk)) {
+        throw new TypeError("addAudioChunk's first argument (sample) must be of type EncodedAudioChunk.");
+      }
+      if (meta && typeof meta !== "object") {
+        throw new TypeError("addAudioChunk's second argument (meta), when provided, must be an object.");
+      }
+      if (timestamp !== void 0 && (!Number.isFinite(timestamp) || timestamp < 0)) {
+        throw new TypeError(
+          "addAudioChunk's third argument (timestamp), when provided, must be a non-negative real number."
+        );
+      }
+      let data = new Uint8Array(sample.byteLength);
+      sample.copyTo(data);
+      this.addAudioChunkRaw(data, sample.type, timestamp ?? sample.timestamp, sample.duration, meta);
+    }
+    addAudioChunkRaw(data, type, timestamp, duration, meta) {
+      if (!(data instanceof Uint8Array)) {
+        throw new TypeError("addAudioChunkRaw's first argument (data) must be an instance of Uint8Array.");
+      }
+      if (type !== "key" && type !== "delta") {
+        throw new TypeError("addAudioChunkRaw's second argument (type) must be either 'key' or 'delta'.");
+      }
+      if (!Number.isFinite(timestamp) || timestamp < 0) {
+        throw new TypeError("addAudioChunkRaw's third argument (timestamp) must be a non-negative real number.");
+      }
+      if (!Number.isFinite(duration) || duration < 0) {
+        throw new TypeError("addAudioChunkRaw's fourth argument (duration) must be a non-negative real number.");
+      }
+      if (meta && typeof meta !== "object") {
+        throw new TypeError("addAudioChunkRaw's fifth argument (meta), when provided, must be an object.");
+      }
+      __privateMethod(this, _ensureNotFinalized, ensureNotFinalized_fn).call(this);
+      if (!__privateGet(this, _options).audio)
+        throw new Error("No audio track declared.");
+      if (typeof __privateGet(this, _options).fastStart === "object" && __privateGet(this, _audioTrack).samples.length === __privateGet(this, _options).fastStart.expectedAudioChunks) {
+        throw new Error(`Cannot add more audio chunks than specified in 'fastStart' (${__privateGet(this, _options).fastStart.expectedAudioChunks}).`);
+      }
+      let audioSample = __privateMethod(this, _createSampleForTrack, createSampleForTrack_fn).call(this, __privateGet(this, _audioTrack), data, type, timestamp, duration, meta);
+      if (__privateGet(this, _options).fastStart === "fragmented" && __privateGet(this, _videoTrack)) {
+        while (__privateGet(this, _videoSampleQueue).length > 0 && __privateGet(this, _videoSampleQueue)[0].decodeTimestamp <= audioSample.decodeTimestamp) {
+          let videoSample = __privateGet(this, _videoSampleQueue).shift();
+          __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _videoTrack), videoSample);
+        }
+        if (audioSample.decodeTimestamp <= __privateGet(this, _videoTrack).lastDecodeTimestamp) {
+          __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _audioTrack), audioSample);
+        } else {
+          __privateGet(this, _audioSampleQueue).push(audioSample);
+        }
+      } else {
+        __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _audioTrack), audioSample);
+      }
+    }
+    /** Finalizes the file, making it ready for use. Must be called after all video and audio chunks have been added. */
+    finalize() {
+      if (__privateGet(this, _finalized)) {
+        throw new Error("Cannot finalize a muxer more than once.");
+      }
+      if (__privateGet(this, _options).fastStart === "fragmented") {
+        for (let videoSample of __privateGet(this, _videoSampleQueue))
+          __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _videoTrack), videoSample);
+        for (let audioSample of __privateGet(this, _audioSampleQueue))
+          __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _audioTrack), audioSample);
+        __privateMethod(this, _finalizeFragment, finalizeFragment_fn).call(this, false);
+      } else {
+        if (__privateGet(this, _videoTrack))
+          __privateMethod(this, _finalizeCurrentChunk, finalizeCurrentChunk_fn).call(this, __privateGet(this, _videoTrack));
+        if (__privateGet(this, _audioTrack))
+          __privateMethod(this, _finalizeCurrentChunk, finalizeCurrentChunk_fn).call(this, __privateGet(this, _audioTrack));
+      }
+      let tracks = [__privateGet(this, _videoTrack), __privateGet(this, _audioTrack)].filter(Boolean);
+      if (__privateGet(this, _options).fastStart === "in-memory") {
+        let mdatSize;
+        for (let i = 0; i < 2; i++) {
+          let movieBox2 = moov(tracks, __privateGet(this, _creationTime));
+          let movieBoxSize = __privateGet(this, _writer).measureBox(movieBox2);
+          mdatSize = __privateGet(this, _writer).measureBox(__privateGet(this, _mdat));
+          let currentChunkPos = __privateGet(this, _writer).pos + movieBoxSize + mdatSize;
+          for (let chunk of __privateGet(this, _finalizedChunks)) {
+            chunk.offset = currentChunkPos;
+            for (let { data } of chunk.samples) {
+              currentChunkPos += data.byteLength;
+              mdatSize += data.byteLength;
+            }
+          }
+          if (currentChunkPos < 2 ** 32)
+            break;
+          if (mdatSize >= 2 ** 32)
+            __privateGet(this, _mdat).largeSize = true;
+        }
+        let movieBox = moov(tracks, __privateGet(this, _creationTime));
+        __privateGet(this, _writer).writeBox(movieBox);
+        __privateGet(this, _mdat).size = mdatSize;
+        __privateGet(this, _writer).writeBox(__privateGet(this, _mdat));
+        for (let chunk of __privateGet(this, _finalizedChunks)) {
+          for (let sample of chunk.samples) {
+            __privateGet(this, _writer).write(sample.data);
+            sample.data = null;
+          }
+        }
+      } else if (__privateGet(this, _options).fastStart === "fragmented") {
+        let startPos = __privateGet(this, _writer).pos;
+        let mfraBox = mfra(tracks);
+        __privateGet(this, _writer).writeBox(mfraBox);
+        let mfraBoxSize = __privateGet(this, _writer).pos - startPos;
+        __privateGet(this, _writer).seek(__privateGet(this, _writer).pos - 4);
+        __privateGet(this, _writer).writeU32(mfraBoxSize);
+      } else {
+        let mdatPos = __privateGet(this, _writer).offsets.get(__privateGet(this, _mdat));
+        let mdatSize = __privateGet(this, _writer).pos - mdatPos;
+        __privateGet(this, _mdat).size = mdatSize;
+        __privateGet(this, _mdat).largeSize = mdatSize >= 2 ** 32;
+        __privateGet(this, _writer).patchBox(__privateGet(this, _mdat));
+        let movieBox = moov(tracks, __privateGet(this, _creationTime));
+        if (typeof __privateGet(this, _options).fastStart === "object") {
+          __privateGet(this, _writer).seek(__privateGet(this, _ftypSize));
+          __privateGet(this, _writer).writeBox(movieBox);
+          let remainingBytes = mdatPos - __privateGet(this, _writer).pos;
+          __privateGet(this, _writer).writeBox(free(remainingBytes));
+        } else {
+          __privateGet(this, _writer).writeBox(movieBox);
+        }
+      }
+      __privateMethod(this, _maybeFlushStreamingTargetWriter, maybeFlushStreamingTargetWriter_fn).call(this);
+      __privateGet(this, _writer).finalize();
+      __privateSet(this, _finalized, true);
+    }
+  };
+  _options = new WeakMap();
+  _writer = new WeakMap();
+  _ftypSize = new WeakMap();
+  _mdat = new WeakMap();
+  _videoTrack = new WeakMap();
+  _audioTrack = new WeakMap();
+  _creationTime = new WeakMap();
+  _finalizedChunks = new WeakMap();
+  _nextFragmentNumber = new WeakMap();
+  _videoSampleQueue = new WeakMap();
+  _audioSampleQueue = new WeakMap();
+  _finalized = new WeakMap();
+  _validateOptions = new WeakSet();
+  validateOptions_fn = function(options) {
+    if (typeof options !== "object") {
+      throw new TypeError("The muxer requires an options object to be passed to its constructor.");
+    }
+    if (!(options.target instanceof Target)) {
+      throw new TypeError("The target must be provided and an instance of Target.");
+    }
+    if (options.video) {
+      if (!SUPPORTED_VIDEO_CODECS.includes(options.video.codec)) {
+        throw new TypeError(`Unsupported video codec: ${options.video.codec}`);
+      }
+      if (!Number.isInteger(options.video.width) || options.video.width <= 0) {
+        throw new TypeError(`Invalid video width: ${options.video.width}. Must be a positive integer.`);
+      }
+      if (!Number.isInteger(options.video.height) || options.video.height <= 0) {
+        throw new TypeError(`Invalid video height: ${options.video.height}. Must be a positive integer.`);
+      }
+      const videoRotation = options.video.rotation;
+      if (typeof videoRotation === "number" && ![0, 90, 180, 270].includes(videoRotation)) {
+        throw new TypeError(`Invalid video rotation: ${videoRotation}. Has to be 0, 90, 180 or 270.`);
+      } else if (Array.isArray(videoRotation) && (videoRotation.length !== 9 || videoRotation.some((value) => typeof value !== "number"))) {
+        throw new TypeError(`Invalid video transformation matrix: ${videoRotation.join()}`);
+      }
+      if (options.video.frameRate !== void 0 && (!Number.isInteger(options.video.frameRate) || options.video.frameRate <= 0)) {
+        throw new TypeError(
+          `Invalid video frame rate: ${options.video.frameRate}. Must be a positive integer.`
+        );
+      }
+    }
+    if (options.audio) {
+      if (!SUPPORTED_AUDIO_CODECS.includes(options.audio.codec)) {
+        throw new TypeError(`Unsupported audio codec: ${options.audio.codec}`);
+      }
+      if (!Number.isInteger(options.audio.numberOfChannels) || options.audio.numberOfChannels <= 0) {
+        throw new TypeError(
+          `Invalid number of audio channels: ${options.audio.numberOfChannels}. Must be a positive integer.`
+        );
+      }
+      if (!Number.isInteger(options.audio.sampleRate) || options.audio.sampleRate <= 0) {
+        throw new TypeError(
+          `Invalid audio sample rate: ${options.audio.sampleRate}. Must be a positive integer.`
+        );
+      }
+    }
+    if (options.firstTimestampBehavior && !FIRST_TIMESTAMP_BEHAVIORS.includes(options.firstTimestampBehavior)) {
+      throw new TypeError(`Invalid first timestamp behavior: ${options.firstTimestampBehavior}`);
+    }
+    if (typeof options.fastStart === "object") {
+      if (options.video) {
+        if (options.fastStart.expectedVideoChunks === void 0) {
+          throw new TypeError(`'fastStart' is an object but is missing property 'expectedVideoChunks'.`);
+        } else if (!Number.isInteger(options.fastStart.expectedVideoChunks) || options.fastStart.expectedVideoChunks < 0) {
+          throw new TypeError(`'expectedVideoChunks' must be a non-negative integer.`);
+        }
+      }
+      if (options.audio) {
+        if (options.fastStart.expectedAudioChunks === void 0) {
+          throw new TypeError(`'fastStart' is an object but is missing property 'expectedAudioChunks'.`);
+        } else if (!Number.isInteger(options.fastStart.expectedAudioChunks) || options.fastStart.expectedAudioChunks < 0) {
+          throw new TypeError(`'expectedAudioChunks' must be a non-negative integer.`);
+        }
+      }
+    } else if (![false, "in-memory", "fragmented"].includes(options.fastStart)) {
+      throw new TypeError(`'fastStart' option must be false, 'in-memory', 'fragmented' or an object.`);
+    }
+    if (options.minFragmentDuration !== void 0 && (!Number.isFinite(options.minFragmentDuration) || options.minFragmentDuration < 0)) {
+      throw new TypeError(`'minFragmentDuration' must be a non-negative number.`);
+    }
+  };
+  _writeHeader = new WeakSet();
+  writeHeader_fn = function() {
+    __privateGet(this, _writer).writeBox(ftyp({
+      holdsAvc: __privateGet(this, _options).video?.codec === "avc",
+      fragmented: __privateGet(this, _options).fastStart === "fragmented"
+    }));
+    __privateSet(this, _ftypSize, __privateGet(this, _writer).pos);
+    if (__privateGet(this, _options).fastStart === "in-memory") {
+      __privateSet(this, _mdat, mdat(false));
+    } else if (__privateGet(this, _options).fastStart === "fragmented") {
+    } else {
+      if (typeof __privateGet(this, _options).fastStart === "object") {
+        let moovSizeUpperBound = __privateMethod(this, _computeMoovSizeUpperBound, computeMoovSizeUpperBound_fn).call(this);
+        __privateGet(this, _writer).seek(__privateGet(this, _writer).pos + moovSizeUpperBound);
+      }
+      __privateSet(this, _mdat, mdat(true));
+      __privateGet(this, _writer).writeBox(__privateGet(this, _mdat));
+    }
+    __privateMethod(this, _maybeFlushStreamingTargetWriter, maybeFlushStreamingTargetWriter_fn).call(this);
+  };
+  _computeMoovSizeUpperBound = new WeakSet();
+  computeMoovSizeUpperBound_fn = function() {
+    if (typeof __privateGet(this, _options).fastStart !== "object")
+      return;
+    let upperBound = 0;
+    let sampleCounts = [
+      __privateGet(this, _options).fastStart.expectedVideoChunks,
+      __privateGet(this, _options).fastStart.expectedAudioChunks
+    ];
+    for (let n of sampleCounts) {
+      if (!n)
+        continue;
+      upperBound += (4 + 4) * Math.ceil(2 / 3 * n);
+      upperBound += 4 * n;
+      upperBound += (4 + 4 + 4) * Math.ceil(2 / 3 * n);
+      upperBound += 4 * n;
+      upperBound += 8 * n;
+    }
+    upperBound += 4096;
+    return upperBound;
+  };
+  _prepareTracks = new WeakSet();
+  prepareTracks_fn = function() {
+    if (__privateGet(this, _options).video) {
+      __privateSet(this, _videoTrack, {
+        id: 1,
+        info: {
+          type: "video",
+          codec: __privateGet(this, _options).video.codec,
+          width: __privateGet(this, _options).video.width,
+          height: __privateGet(this, _options).video.height,
+          rotation: __privateGet(this, _options).video.rotation ?? 0,
+          decoderConfig: null
+        },
+        // The fallback contains many common frame rates as factors
+        timescale: __privateGet(this, _options).video.frameRate ?? 57600,
+        samples: [],
+        finalizedChunks: [],
+        currentChunk: null,
+        firstDecodeTimestamp: void 0,
+        lastDecodeTimestamp: -1,
+        timeToSampleTable: [],
+        compositionTimeOffsetTable: [],
+        lastTimescaleUnits: null,
+        lastSample: null,
+        compactlyCodedChunkTable: []
+      });
+    }
+    if (__privateGet(this, _options).audio) {
+      __privateSet(this, _audioTrack, {
+        id: __privateGet(this, _options).video ? 2 : 1,
+        info: {
+          type: "audio",
+          codec: __privateGet(this, _options).audio.codec,
+          numberOfChannels: __privateGet(this, _options).audio.numberOfChannels,
+          sampleRate: __privateGet(this, _options).audio.sampleRate,
+          decoderConfig: null
+        },
+        timescale: __privateGet(this, _options).audio.sampleRate,
+        samples: [],
+        finalizedChunks: [],
+        currentChunk: null,
+        firstDecodeTimestamp: void 0,
+        lastDecodeTimestamp: -1,
+        timeToSampleTable: [],
+        compositionTimeOffsetTable: [],
+        lastTimescaleUnits: null,
+        lastSample: null,
+        compactlyCodedChunkTable: []
+      });
+      if (__privateGet(this, _options).audio.codec === "aac") {
+        let guessedCodecPrivate = __privateMethod(this, _generateMpeg4AudioSpecificConfig, generateMpeg4AudioSpecificConfig_fn).call(
+          this,
+          2,
+          // Object type for AAC-LC, since it's the most common
+          __privateGet(this, _options).audio.sampleRate,
+          __privateGet(this, _options).audio.numberOfChannels
+        );
+        __privateGet(this, _audioTrack).info.decoderConfig = {
+          codec: __privateGet(this, _options).audio.codec,
+          description: guessedCodecPrivate,
+          numberOfChannels: __privateGet(this, _options).audio.numberOfChannels,
+          sampleRate: __privateGet(this, _options).audio.sampleRate
+        };
+      }
+    }
+  };
+  _generateMpeg4AudioSpecificConfig = new WeakSet();
+  generateMpeg4AudioSpecificConfig_fn = function(objectType, sampleRate, numberOfChannels) {
+    let frequencyIndices = [96e3, 88200, 64e3, 48e3, 44100, 32e3, 24e3, 22050, 16e3, 12e3, 11025, 8e3, 7350];
+    let frequencyIndex = frequencyIndices.indexOf(sampleRate);
+    let channelConfig = numberOfChannels;
+    let configBits = "";
+    configBits += objectType.toString(2).padStart(5, "0");
+    configBits += frequencyIndex.toString(2).padStart(4, "0");
+    if (frequencyIndex === 15)
+      configBits += sampleRate.toString(2).padStart(24, "0");
+    configBits += channelConfig.toString(2).padStart(4, "0");
+    let paddingLength = Math.ceil(configBits.length / 8) * 8;
+    configBits = configBits.padEnd(paddingLength, "0");
+    let configBytes = new Uint8Array(configBits.length / 8);
+    for (let i = 0; i < configBits.length; i += 8) {
+      configBytes[i / 8] = parseInt(configBits.slice(i, i + 8), 2);
+    }
+    return configBytes;
+  };
+  _createSampleForTrack = new WeakSet();
+  createSampleForTrack_fn = function(track, data, type, timestamp, duration, meta, compositionTimeOffset) {
+    let presentationTimestampInSeconds = timestamp / 1e6;
+    let decodeTimestampInSeconds = (timestamp - (compositionTimeOffset ?? 0)) / 1e6;
+    let durationInSeconds = duration / 1e6;
+    let adjusted = __privateMethod(this, _validateTimestamp, validateTimestamp_fn).call(this, presentationTimestampInSeconds, decodeTimestampInSeconds, track);
+    presentationTimestampInSeconds = adjusted.presentationTimestamp;
+    decodeTimestampInSeconds = adjusted.decodeTimestamp;
+    if (meta?.decoderConfig) {
+      if (track.info.decoderConfig === null) {
+        track.info.decoderConfig = meta.decoderConfig;
+      } else {
+        Object.assign(track.info.decoderConfig, meta.decoderConfig);
+      }
+    }
+    let sample = {
+      presentationTimestamp: presentationTimestampInSeconds,
+      decodeTimestamp: decodeTimestampInSeconds,
+      duration: durationInSeconds,
+      data,
+      size: data.byteLength,
+      type,
+      // Will be refined once the next sample comes in
+      timescaleUnitsToNextSample: intoTimescale(durationInSeconds, track.timescale)
+    };
+    return sample;
+  };
+  _addSampleToTrack = new WeakSet();
+  addSampleToTrack_fn = function(track, sample) {
+    if (__privateGet(this, _options).fastStart !== "fragmented") {
+      track.samples.push(sample);
+    }
+    const sampleCompositionTimeOffset = intoTimescale(sample.presentationTimestamp - sample.decodeTimestamp, track.timescale);
+    if (track.lastTimescaleUnits !== null) {
+      let timescaleUnits = intoTimescale(sample.decodeTimestamp, track.timescale, false);
+      let delta = Math.round(timescaleUnits - track.lastTimescaleUnits);
+      track.lastTimescaleUnits += delta;
+      track.lastSample.timescaleUnitsToNextSample = delta;
+      if (__privateGet(this, _options).fastStart !== "fragmented") {
+        let lastTableEntry = last(track.timeToSampleTable);
+        if (lastTableEntry.sampleCount === 1) {
+          lastTableEntry.sampleDelta = delta;
+          lastTableEntry.sampleCount++;
+        } else if (lastTableEntry.sampleDelta === delta) {
+          lastTableEntry.sampleCount++;
+        } else {
+          lastTableEntry.sampleCount--;
+          track.timeToSampleTable.push({
+            sampleCount: 2,
+            sampleDelta: delta
+          });
+        }
+        const lastCompositionTimeOffsetTableEntry = last(track.compositionTimeOffsetTable);
+        if (lastCompositionTimeOffsetTableEntry.sampleCompositionTimeOffset === sampleCompositionTimeOffset) {
+          lastCompositionTimeOffsetTableEntry.sampleCount++;
+        } else {
+          track.compositionTimeOffsetTable.push({
+            sampleCount: 1,
+            sampleCompositionTimeOffset
+          });
+        }
+      }
+    } else {
+      track.lastTimescaleUnits = 0;
+      if (__privateGet(this, _options).fastStart !== "fragmented") {
+        track.timeToSampleTable.push({
+          sampleCount: 1,
+          sampleDelta: intoTimescale(sample.duration, track.timescale)
+        });
+        track.compositionTimeOffsetTable.push({
+          sampleCount: 1,
+          sampleCompositionTimeOffset
+        });
+      }
+    }
+    track.lastSample = sample;
+    let beginNewChunk = false;
+    if (!track.currentChunk) {
+      beginNewChunk = true;
+    } else {
+      let currentChunkDuration = sample.presentationTimestamp - track.currentChunk.startTimestamp;
+      if (__privateGet(this, _options).fastStart === "fragmented") {
+        let mostImportantTrack = __privateGet(this, _videoTrack) ?? __privateGet(this, _audioTrack);
+        const chunkDuration = __privateGet(this, _options).minFragmentDuration ?? 1;
+        if (track === mostImportantTrack && sample.type === "key" && currentChunkDuration >= chunkDuration) {
+          beginNewChunk = true;
+          __privateMethod(this, _finalizeFragment, finalizeFragment_fn).call(this);
+        }
+      } else {
+        beginNewChunk = currentChunkDuration >= 0.5;
+      }
+    }
+    if (beginNewChunk) {
+      if (track.currentChunk) {
+        __privateMethod(this, _finalizeCurrentChunk, finalizeCurrentChunk_fn).call(this, track);
+      }
+      track.currentChunk = {
+        startTimestamp: sample.presentationTimestamp,
+        samples: []
+      };
+    }
+    track.currentChunk.samples.push(sample);
+  };
+  _validateTimestamp = new WeakSet();
+  validateTimestamp_fn = function(presentationTimestamp, decodeTimestamp, track) {
+    const strictTimestampBehavior = __privateGet(this, _options).firstTimestampBehavior === "strict";
+    const noLastDecodeTimestamp = track.lastDecodeTimestamp === -1;
+    const timestampNonZero = decodeTimestamp !== 0;
+    if (strictTimestampBehavior && noLastDecodeTimestamp && timestampNonZero) {
+      throw new Error(
+        `The first chunk for your media track must have a timestamp of 0 (received DTS=${decodeTimestamp}).Non-zero first timestamps are often caused by directly piping frames or audio data from a MediaStreamTrack into the encoder. Their timestamps are typically relative to the age of thedocument, which is probably what you want.
+
+If you want to offset all timestamps of a track such that the first one is zero, set firstTimestampBehavior: 'offset' in the options.
+`
+      );
+    } else if (__privateGet(this, _options).firstTimestampBehavior === "offset" || __privateGet(this, _options).firstTimestampBehavior === "cross-track-offset") {
+      if (track.firstDecodeTimestamp === void 0) {
+        track.firstDecodeTimestamp = decodeTimestamp;
+      }
+      let baseDecodeTimestamp;
+      if (__privateGet(this, _options).firstTimestampBehavior === "offset") {
+        baseDecodeTimestamp = track.firstDecodeTimestamp;
+      } else {
+        baseDecodeTimestamp = Math.min(
+          __privateGet(this, _videoTrack)?.firstDecodeTimestamp ?? Infinity,
+          __privateGet(this, _audioTrack)?.firstDecodeTimestamp ?? Infinity
+        );
+      }
+      decodeTimestamp -= baseDecodeTimestamp;
+      presentationTimestamp -= baseDecodeTimestamp;
+    }
+    if (decodeTimestamp < track.lastDecodeTimestamp) {
+      throw new Error(
+        `Timestamps must be monotonically increasing (DTS went from ${track.lastDecodeTimestamp * 1e6} to ${decodeTimestamp * 1e6}).`
+      );
+    }
+    track.lastDecodeTimestamp = decodeTimestamp;
+    return { presentationTimestamp, decodeTimestamp };
+  };
+  _finalizeCurrentChunk = new WeakSet();
+  finalizeCurrentChunk_fn = function(track) {
+    if (__privateGet(this, _options).fastStart === "fragmented") {
+      throw new Error("Can't finalize individual chunks if 'fastStart' is set to 'fragmented'.");
+    }
+    if (!track.currentChunk)
+      return;
+    track.finalizedChunks.push(track.currentChunk);
+    __privateGet(this, _finalizedChunks).push(track.currentChunk);
+    if (track.compactlyCodedChunkTable.length === 0 || last(track.compactlyCodedChunkTable).samplesPerChunk !== track.currentChunk.samples.length) {
+      track.compactlyCodedChunkTable.push({
+        firstChunk: track.finalizedChunks.length,
+        // 1-indexed
+        samplesPerChunk: track.currentChunk.samples.length
+      });
+    }
+    if (__privateGet(this, _options).fastStart === "in-memory") {
+      track.currentChunk.offset = 0;
+      return;
+    }
+    track.currentChunk.offset = __privateGet(this, _writer).pos;
+    for (let sample of track.currentChunk.samples) {
+      __privateGet(this, _writer).write(sample.data);
+      sample.data = null;
+    }
+    __privateMethod(this, _maybeFlushStreamingTargetWriter, maybeFlushStreamingTargetWriter_fn).call(this);
+  };
+  _finalizeFragment = new WeakSet();
+  finalizeFragment_fn = function(flushStreamingWriter = true) {
+    if (__privateGet(this, _options).fastStart !== "fragmented") {
+      throw new Error("Can't finalize a fragment unless 'fastStart' is set to 'fragmented'.");
+    }
+    let tracks = [__privateGet(this, _videoTrack), __privateGet(this, _audioTrack)].filter((track) => track && track.currentChunk);
+    if (tracks.length === 0)
+      return;
+    let fragmentNumber = __privateWrapper(this, _nextFragmentNumber)._++;
+    if (fragmentNumber === 1) {
+      let movieBox = moov(tracks, __privateGet(this, _creationTime), true);
+      __privateGet(this, _writer).writeBox(movieBox);
+    }
+    let moofOffset = __privateGet(this, _writer).pos;
+    let moofBox = moof(fragmentNumber, tracks);
+    __privateGet(this, _writer).writeBox(moofBox);
+    {
+      let mdatBox = mdat(false);
+      let totalTrackSampleSize = 0;
+      for (let track of tracks) {
+        for (let sample of track.currentChunk.samples) {
+          totalTrackSampleSize += sample.size;
+        }
+      }
+      let mdatSize = __privateGet(this, _writer).measureBox(mdatBox) + totalTrackSampleSize;
+      if (mdatSize >= 2 ** 32) {
+        mdatBox.largeSize = true;
+        mdatSize = __privateGet(this, _writer).measureBox(mdatBox) + totalTrackSampleSize;
+      }
+      mdatBox.size = mdatSize;
+      __privateGet(this, _writer).writeBox(mdatBox);
+    }
+    for (let track of tracks) {
+      track.currentChunk.offset = __privateGet(this, _writer).pos;
+      track.currentChunk.moofOffset = moofOffset;
+      for (let sample of track.currentChunk.samples) {
+        __privateGet(this, _writer).write(sample.data);
+        sample.data = null;
+      }
+    }
+    let endPos = __privateGet(this, _writer).pos;
+    __privateGet(this, _writer).seek(__privateGet(this, _writer).offsets.get(moofBox));
+    let newMoofBox = moof(fragmentNumber, tracks);
+    __privateGet(this, _writer).writeBox(newMoofBox);
+    __privateGet(this, _writer).seek(endPos);
+    for (let track of tracks) {
+      track.finalizedChunks.push(track.currentChunk);
+      __privateGet(this, _finalizedChunks).push(track.currentChunk);
+      track.currentChunk = null;
+    }
+    if (flushStreamingWriter) {
+      __privateMethod(this, _maybeFlushStreamingTargetWriter, maybeFlushStreamingTargetWriter_fn).call(this);
+    }
+  };
+  _maybeFlushStreamingTargetWriter = new WeakSet();
+  maybeFlushStreamingTargetWriter_fn = function() {
+    if (__privateGet(this, _writer) instanceof StreamTargetWriter) {
+      __privateGet(this, _writer).flush();
+    }
+  };
+  _ensureNotFinalized = new WeakSet();
+  ensureNotFinalized_fn = function() {
+    if (__privateGet(this, _finalized)) {
+      throw new Error("Cannot add new video or audio chunks after the file has been finalized.");
+    }
+  };
+  return __toCommonJS(src_exports);
+})();
+if (typeof module === "object" && typeof module.exports === "object") Object.assign(module.exports, Mp4Muxer)
+
+</script>
+<script>
+// Standard JPEG Huffman tables (some Motion-JPEG frames leave them out)
+const STD_DHT = new Uint8Array([255,196,1,162,0,0,1,5,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,2,3,4,5,6,7,8,9,10,11,16,0,2,1,3,3,2,4,3,5,5,4,4,0,0,1,125,1,2,3,0,4,17,5,18,33,49,65,6,19,81,97,7,34,113,20,50,129,145,161,8,35,66,177,193,21,82,209,240,36,51,98,114,130,9,10,22,23,24,25,26,37,38,39,40,41,42,52,53,54,55,56,57,58,67,68,69,70,71,72,73,74,83,84,85,86,87,88,89,90,99,100,101,102,103,104,105,106,115,116,117,118,119,120,121,122,131,132,133,134,135,136,137,138,146,147,148,149,150,151,152,153,154,162,163,164,165,166,167,168,169,170,178,179,180,181,182,183,184,185,186,194,195,196,197,198,199,200,201,202,210,211,212,213,214,215,216,217,218,225,226,227,228,229,230,231,232,233,234,241,242,243,244,245,246,247,248,249,250,1,0,3,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,2,3,4,5,6,7,8,9,10,11,17,0,2,1,2,4,4,3,4,7,5,4,4,0,1,2,119,0,1,2,3,17,4,5,33,49,6,18,65,81,7,97,113,19,34,50,129,8,20,66,145,161,177,193,9,35,51,82,240,21,98,114,209,10,22,36,52,225,37,241,23,24,25,26,38,39,40,41,42,53,54,55,56,57,58,67,68,69,70,71,72,73,74,83,84,85,86,87,88,89,90,99,100,101,102,103,104,105,106,115,116,117,118,119,120,121,122,130,131,132,133,134,135,136,137,138,146,147,148,149,150,151,152,153,154,162,163,164,165,166,167,168,169,170,178,179,180,181,182,183,184,185,186,194,195,196,197,198,199,200,201,202,210,211,212,213,214,215,216,217,218,226,227,228,229,230,231,232,233,234,242,243,244,245,246,247,248,249,250]);
+
+// ===========================================================================================
+// Charmera core: reading the camera's AVI files, frame timing, sound decoding, the noise
+// filter, JPEG/EXIF repair and MP4 dates. Pure JavaScript, no browser APIs except Blob.
+// Ported from the Android app (Formats.java, NoiseReducer.java).
+// ===========================================================================================
+
+// ------------------------------------------------------------------ reading files in windows
+
+/** Reads pieces of a Blob/File, keeping a window in memory so walking chunk headers is fast. */
+class BlobReader {
+  constructor(blob, windowSize = 512 * 1024) {
+    this.blob = blob;
+    this.size = blob.size;
+    this.windowSize = windowSize;
+    this.start = 0;
+    this.buf = new Uint8Array(0);
+  }
+
+  /** Bytes pos..pos+len (shorter at the end of the file). Valid until the next call. */
+  async bytes(pos, len) {
+    len = Math.max(0, Math.min(len, this.size - pos));
+    if (pos >= this.start && pos + len <= this.start + this.buf.length) {
+      return this.buf.subarray(pos - this.start, pos - this.start + len);
+    }
+    const end = Math.min(this.size, pos + Math.max(len, this.windowSize));
+    this.buf = new Uint8Array(await this.blob.slice(pos, end).arrayBuffer());
+    this.start = pos;
+    return this.buf.subarray(0, len);
+  }
+}
+
+const u16 = (b, o) => b[o] | (b[o + 1] << 8);
+const u32 = (b, o) => (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0;
+const s32 = (b, o) => b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24);
+const fourcc = (b, o) => String.fromCharCode(b[o], b[o + 1], b[o + 2], b[o + 3]);
+
+// ------------------------------------------------------------------ AVI
+
+const WAVE_PCM = 0x0001, WAVE_EXTENSIBLE = 0xFFFE;
+
+class Avi {
+  constructor() {
+    this.width = 0; this.height = 0;
+    this.usPerFrame = 0; this.headerFrames = 0;
+    this.vScale = 0; this.vRate = 0;
+    this.videoFourcc = '';
+    this.hasVideo = false; this.hasAudio = false;
+    this.audioTag = 0; this.channels = 0; this.sampleRate = 0; this.bitsPerSample = 0; this.blockAlign = 0;
+    this.avgBytesPerSec = 0; this.aScale = 0; this.aRate = 0; this.aLength = 0;
+    this.videoPos = []; this.videoLen = []; this.audioPos = []; this.audioLen = [];
+    this.streamCount = 0; this.curStream = -1; this.videoStream = -1; this.audioStream = -1; this.curType = '';
+  }
+
+  frameCount() { return this.videoPos.length; }
+
+  fps() {
+    let f = 0;
+    if (this.vRate > 0 && this.vScale > 0) f = this.vRate / this.vScale;
+    else if (this.usPerFrame > 0) f = 1e6 / this.usPerFrame;
+    if (f < 1 || f > 240) f = 30;
+    return f;
+  }
+
+  /** Duration from the headers in ms (cheap, for thumbnails), or -1. The sound's length is preferred. */
+  headerDurationMs() {
+    const video = this.headerFrames > 0 ? this.headerFrames / this.fps() : -1;
+    if (this.hasAudio && this.aLength > 0 && this.aRate > 0 && this.aScale > 0) {
+      const sound = this.aLength * this.aScale / this.aRate;
+      if (sound > 0.2 && (video <= 0 || (sound > video / 3 && sound < video * 3))) return Math.round(sound * 1000);
+    }
+    return video > 0 ? Math.round(video * 1000) : -1;
+  }
+
+  /** This page decodes plain PCM sound (8 or 16 bit), which is what the Charmera records. */
+  audioDecodable() {
+    if (!this.hasAudio || this.channels < 1 || this.channels > 2 || this.sampleRate < 4000 || this.sampleRate > 96000) return false;
+    return (this.audioTag === WAVE_PCM || this.audioTag === WAVE_EXTENSIBLE) && (this.bitsPerSample === 8 || this.bitsPerSample === 16);
+  }
+
+  audioSecondsPerByte() {
+    if (!this.hasAudio) return 0;
+    if (this.audioDecodable()) return 1 / ((this.bitsPerSample / 8) * this.channels * this.sampleRate);
+    return this.avgBytesPerSec > 0 ? 1 / this.avgBytesPerSec : 0;
+  }
+
+  audioDescription() {
+    return `format 0x${this.audioTag.toString(16)}, ${this.bitsPerSample} bit, ${this.channels} ch, ${this.sampleRate} Hz`;
+  }
+}
+
+const MAX_DEPTH = 6, MAX_CHUNK = 64 * 1024 * 1024;
+
+/** Parses an AVI file. With firstOnly the walk stops at the first non-empty video frame. */
+async function parseAvi(reader, firstOnly) {
+  const a = new Avi();
+  const fileLen = reader.size;
+  let pos = 0, first = true;
+  while (pos + 12 <= fileLen) {
+    const h = await reader.bytes(pos, 12);
+    if (fourcc(h, 0) !== 'RIFF') {
+      if (first) throw new Error('Not an AVI file');
+      break;
+    }
+    if (first && fourcc(h, 8) !== 'AVI ') throw new Error('Not an AVI file');
+    const size = u32(h, 4);
+    let end = pos + 8 + size;
+    if (size < 4 || end > fileLen) end = fileLen;
+    if (await walkAvi(reader, a, pos + 12, end, 0, firstOnly, false)) break;
+    first = false;
+    pos = end + (end & 1);
+  }
+  return a;
+}
+
+async function chunkBytes(reader, pos, len, minSize) {
+  const out = new Uint8Array(Math.max(len, minSize));
+  out.set(await reader.bytes(pos, len));
+  return out;
+}
+
+/** Returns true when the caller should stop (first frame found in firstOnly mode). */
+async function walkAvi(reader, a, start, end, depth, firstOnly, inMovi) {
+  let p = start;
+  while (p + 8 <= end) {
+    const got = Math.min(12, end - p);
+    const hv = await reader.bytes(p, got);
+    const h = new Uint8Array(12);
+    h.set(hv);
+    const id = fourcc(h, 0);
+    const size = u32(h, 4);
+    const data = p + 8;
+    let dataEnd = data + size;
+    let truncated = dataEnd > end;
+    if (truncated) dataEnd = end;
+
+    if (id === 'LIST') {
+      if (got < 12) break;
+      const type = fourcc(h, 8);
+      const movi = inMovi || type === 'movi';
+      if (type === 'movi' && size === 0) { dataEnd = end; truncated = true; }
+      if (type === 'strl') { a.curStream = a.streamCount++; a.curType = ''; }
+      if (depth < MAX_DEPTH && (type === 'hdrl' || type === 'strl' || movi)) {
+        if (await walkAvi(reader, a, data + 4, dataEnd, depth + 1, firstOnly, movi)) return true;
+      }
+    } else if (inMovi) {
+      const d0 = h[0] - 48, d1 = h[1] - 48;
+      const stream = d0 < 0 || d0 > 9 || d1 < 0 || d1 > 9 ? -1 : d0 * 10 + d1;
+      if (stream >= 0 && size <= MAX_CHUNK) {
+        const t1 = String.fromCharCode(h[2]), t2 = String.fromCharCode(h[3]);
+        if (stream === a.videoStream && t1 === 'd' && (t2 === 'c' || t2 === 'b')) {
+          if (!truncated) {
+            a.videoPos.push(data);
+            a.videoLen.push(size);
+            if (firstOnly && size > 0) return true;
+          }
+        } else if (stream === a.audioStream && t1 === 'w' && t2 === 'b') {
+          if (!truncated) { a.audioPos.push(data); a.audioLen.push(size); }
+        }
+      }
+    } else if (id === 'avih') {
+      const b = await chunkBytes(reader, data, Math.min(size, 56), 40);
+      a.usPerFrame = u32(b, 0);
+      a.headerFrames = s32(b, 16);
+      if (a.width === 0) { a.width = s32(b, 32); a.height = Math.abs(s32(b, 36)); }
+    } else if (id === 'strh') {
+      const b = await chunkBytes(reader, data, Math.min(size, 56), 48);
+      const type = fourcc(b, 0);
+      if (type === 'vids' && a.videoStream < 0) {
+        a.videoStream = a.curStream; a.curType = 'v'; a.hasVideo = true;
+        a.videoFourcc = fourcc(b, 4).trim();
+        a.vScale = u32(b, 20); a.vRate = u32(b, 24);
+      } else if (type === 'auds' && a.audioStream < 0) {
+        a.audioStream = a.curStream; a.curType = 'a'; a.hasAudio = true;
+        a.aScale = u32(b, 20); a.aRate = u32(b, 24); a.aLength = u32(b, 32);
+      } else {
+        a.curType = '';
+      }
+    } else if (id === 'strf') {
+      if (a.curType === 'v' && size >= 20) {
+        const b = await chunkBytes(reader, data, Math.min(size, 40), 20);
+        const w = s32(b, 4), hh = Math.abs(s32(b, 8));
+        if (w > 0 && hh > 0) { a.width = w; a.height = hh; }
+        const comp = fourcc(b, 16).trim();
+        if (comp && comp.charCodeAt(0) !== 0) a.videoFourcc = comp;
+      } else if (a.curType === 'a' && size >= 14) {
+        const b = await chunkBytes(reader, data, Math.min(size, 64), 20);
+        a.audioTag = u16(b, 0);
+        a.channels = u16(b, 2);
+        a.sampleRate = u32(b, 4);
+        a.avgBytesPerSec = u32(b, 8);
+        a.blockAlign = u16(b, 12);
+        a.bitsPerSample = size >= 16 ? u16(b, 14) : 16;
+      }
+    }
+    if (truncated) break;
+    p = dataEnd + (size & 1);
+  }
+  return false;
+}
+
+// ------------------------------------------------------------------ frame timing
+
+const MAX_SOUND_CHUNK_SEC = 0.6; // coarser sound chunks can't place frames well
+const SMOOTHING_SEC = 0.25;      // frame times are averaged over about +-0.25 s
+
+/**
+ * Works out when each video frame was really recorded.
+ *
+ * Cheap cameras record fewer frames per second than their AVI header states - fewer still in
+ * dim light - so playing the frames at the stated rate makes the picture too fast. The sound
+ * is recorded at a steady rate, and the camera writes sound and frames into the file in the
+ * order they are captured, so a frame's place among the sound chunks tells when it was taken.
+ * Returns {us: [microseconds per frame], corrected, fromSound, statedFps, realFps}.
+ */
+function frameTimes(a) {
+  const n = a.frameCount();
+  const fps = a.fps();
+  const stated = new Array(n);
+  for (let i = 0; i < n; i++) stated[i] = Math.round(i * 1e6 / fps);
+  const keep = { us: stated, corrected: false, fromSound: false, statedFps: fps, realFps: fps };
+  if (n < 2) return keep;
+  const secPerByte = a.audioSecondsPerByte();
+  const m = a.audioPos.length;
+  if (secPerByte <= 0 || m < 2) return keep;
+
+  const chunkSec = new Float64Array(m);
+  let soundSec = 0;
+  for (let j = 0; j < m; j++) { chunkSec[j] = Math.max(0, a.audioLen[j]) * secPerByte; soundSec += chunkSec[j]; }
+  if (soundSec < 0.5) return keep;
+  const realFps = n / soundSec;
+  if (realFps < 1 || realFps > 120) return keep;
+
+  const anchor = new Float64Array(n), next = new Int32Array(n);
+  let before = 0, j = 0;
+  for (let i = 0; i < n; i++) {
+    const p = a.videoPos[i];
+    while (j < m && a.audioPos[j] < p) before += chunkSec[j++];
+    anchor[i] = before;
+    next[i] = j;
+  }
+  let outside = 0;
+  for (let i = 0; i < n; i++) if (next[i] === 0 || next[i] === m) outside++;
+  const sorted = Float64Array.from(chunkSec).sort();
+  const interleaved = outside <= Math.floor(n / 5) && sorted[m >> 1] <= MAX_SOUND_CHUNK_SEC;
+
+  const t = new Float64Array(n);
+  if (interleaved) {
+    let s = 0;
+    while (s < n) {
+      let e = s + 1;
+      while (e < n && next[e] === next[s]) e++;
+      const span = next[s] < m ? chunkSec[next[s]] : (e - s) / realFps;
+      for (let k = s; k < e; k++) t[k] = anchor[s] + span * (k - s) / (e - s);
+      s = e;
+    }
+    shiftForLateSound(t, next, anchor, chunkSec[0], soundSec, n);
+    smoothFrameTimes(t, realFps);
+  } else {
+    for (let i = 0; i < n; i++) t[i] = i / realFps;
+  }
+
+  // Keep the stated timing when it already agrees with the sound
+  if (interleaved) {
+    const tol = Math.max(0.1, 1.5 * sorted[m >> 1]);
+    let lo = Infinity, hi = -Infinity, sum = 0;
+    for (let i = 0; i < n; i++) {
+      const off = t[i] - stated[i] / 1e6;
+      lo = Math.min(lo, off); hi = Math.max(hi, off); sum += off;
+    }
+    if (hi - lo <= tol && Math.abs(sum / n) <= tol) return keep;
+  } else if (Math.abs(n / fps - soundSec) <= 0.03 * soundSec) {
+    return keep;
+  }
+
+  const us = new Array(n);
+  let prev = -Infinity;
+  for (let i = 0; i < n; i++) {
+    let v = Math.round(t[i] * 1e6);
+    if (v < prev + 1000) v = prev + 1000; // strictly increasing
+    us[i] = v;
+    prev = v;
+  }
+  return { us, corrected: true, fromSound: interleaved, statedFps: fps, realFps };
+}
+
+function shiftForLateSound(t, next, anchor, firstChunk, soundSec, n) {
+  let head = 0;
+  while (head < n && next[head] === 0) head++;
+  if (head === 0 || head === n) return;
+  const window = Math.min(1.0, soundSec - firstChunk);
+  if (window < 0.3) return;
+  let count = 0;
+  for (let i = head; i < n && anchor[i] < firstChunk + window; i++) count++;
+  const localFps = count / window;
+  if (count < 3 || localFps < 1) return;
+  let delay = head / localFps - firstChunk;
+  if (delay <= 0.05) return;
+  delay = Math.min(delay, 1.0);
+  for (let i = 0; i < head; i++) t[i] = (firstChunk + delay) * i / head;
+  for (let i = head; i < n; i++) t[i] += delay;
+}
+
+function smoothFrameTimes(t, fps) {
+  const n = t.length;
+  const gaps = new Float64Array(n - 1);
+  for (let i = 0; i + 1 < n; i++) gaps[i] = t[i + 1] - t[i];
+  const sortedGaps = Float64Array.from(gaps).sort();
+  const pause = Math.max(0.25, 4 * sortedGaps[sortedGaps.length >> 1]);
+  const half = Math.max(1, Math.round(SMOOTHING_SEC * fps));
+  const out = new Float64Array(n);
+  let start = 0;
+  for (let i = 0; i < n; i++) {
+    const end = i === n - 1 || gaps[i] > pause;
+    if (!end) continue;
+    const sum = new Float64Array(i - start + 2);
+    for (let k = start; k <= i; k++) sum[k - start + 1] = sum[k - start] + t[k];
+    for (let k = start; k <= i; k++) {
+      const h = Math.min(half, Math.min(k - start, i - k));
+      out[k] = (sum[k - start + h + 1] - sum[k - start - h]) / (2 * h + 1);
+    }
+    start = i + 1;
+  }
+  t.set(out);
+}
+
+// ------------------------------------------------------------------ sound
+
+/** All of the AVI's PCM sound as interleaved 16-bit samples. */
+async function decodePcm(blob, a) {
+  let total = 0;
+  for (const l of a.audioLen) total += l;
+  const bytesPer = a.bitsPerSample / 8;
+  const out = new Int16Array(Math.floor(total / bytesPer));
+  let o = 0, carry = null;
+  for (let i = 0; i < a.audioPos.length; i++) {
+    const len = a.audioLen[i];
+    if (len <= 0) continue;
+    let b = new Uint8Array(await blob.slice(a.audioPos[i], a.audioPos[i] + len).arrayBuffer());
+    if (bytesPer === 1) {
+      for (let k = 0; k < b.length; k++) out[o++] = (b[k] - 128) << 8;
+    } else {
+      if (carry !== null) { // a sample split across two chunks
+        const joined = new Uint8Array(b.length + 1);
+        joined[0] = carry; joined.set(b, 1); b = joined; carry = null;
+      }
+      const cnt = b.length >> 1;
+      for (let k = 0; k < cnt; k++) out[o++] = (b[2 * k] | (b[2 * k + 1] << 8)) << 16 >> 16;
+      if (b.length & 1) carry = b[b.length - 1];
+    }
+  }
+  const frames = Math.floor(o / a.channels);
+  return out.subarray(0, frames * a.channels);
+}
+
+/** Linear-interpolation resampling of interleaved 16-bit audio (only used if the encoder needs it). */
+function resample(s, channels, inRate, outRate) {
+  const inFrames = s.length / channels;
+  const outFrames = Math.floor(inFrames * outRate / inRate);
+  const out = new Int16Array(outFrames * channels);
+  const step = inRate / outRate;
+  for (let i = 0; i < outFrames; i++) {
+    const pos = i * step, i0 = Math.floor(pos), f = pos - i0, i1 = Math.min(inFrames - 1, i0 + 1);
+    for (let c = 0; c < channels; c++) {
+      const a0 = s[i0 * channels + c], a1 = s[i1 * channels + c];
+      out[i * channels + c] = Math.round(a0 + (a1 - a0) * f);
+    }
+  }
+  return out;
+}
+
+// ------------------------------------------------------------------ noise filter
+
+const NR = {
+  OFF: 0, NORMAL: 1, STRONG: 2,
+  LEARN_SMOOTHING: 0.7, DB_MIN: -120, DB_STEP: 0.5, HIST_BUCKETS: 400, PERCENTILE: 0.10, BIAS: 2.25, MIN_FRAMES: 8,
+  LOOK: 5, MID: 2, FLOOR_DB_NORMAL: -12, FLOOR_DB_STRONG: -18,
+  ERB_SHARE: 0.5, OWN_MIN_REACH: 3, MARGIN_DB: 0.5, SPAN_FACTOR: 2.0, SUBTRACT: 1.0, WOLA_NORM: 1.5,
+  // How high pure hiss reaches on each check (dB above its level): 99th and 99.99th
+  // percentiles by group size in bins, measured by simulation (32 ms Hann slices, 75% overlap)
+  CAL_BINS: [3, 5, 7, 9, 13, 17, 23, 29],
+  OWN_P99: [5.47, 4.66, 4.13, 3.76, 3.26, 2.92, 2.57, 2.32],
+  OWN_P9999: [8.22, 7.08, 6.35, 5.80, 5.04, 4.53, 3.98, 3.62],
+  MED5_P99: [3.60, 3.07, 2.73, 2.49, 2.15, 1.93, 1.70, 1.54],
+  MED5_P9999: [5.75, 4.90, 4.33, 3.97, 3.42, 3.05, 2.71, 2.45],
+  MED11_P99: [2.43, 2.10, 1.88, 1.72, 1.50, 1.35, 1.19, 1.08],
+  MED11_P9999: [4.14, 3.49, 3.10, 2.83, 2.50, 2.21, 1.94, 1.77],
+  NARROW_P99: [5.72, 3.75, 2.49],
+  NARROW_P9999: [8.53, 6.07, 4.33],
+};
+const OWN = 0, BROAD_MID = 1, BROAD_LONG = 2, NARROW_MID = 3, NARROW_LONG = 4, CHECKS = 5;
+
+function calibrated(table, bins) {
+  const nb = Math.max(1, bins), cb = NR.CAL_BINS, last = cb.length - 1;
+  if (nb <= cb[0] || nb >= cb[last]) {
+    const i = nb <= cb[0] ? 0 : last;
+    const excess = Math.pow(10, table[i] / 10) - 1;
+    return 10 * Math.log10(1 + excess * Math.sqrt(cb[i] / nb));
+  }
+  let i = 0;
+  while (cb[i + 1] < nb) i++;
+  const f = Math.log(nb / cb[i]) / Math.log(cb[i + 1] / cb[i]);
+  return table[i] + f * (table[i + 1] - table[i]);
+}
+
+/**
+ * Turns down the camera's steady microphone hiss in one channel of 16-bit audio.
+ *
+ * Two passes: analyze() listens to the whole clip and learns the hiss's level at every
+ * frequency (10th percentile, bias-corrected); process() + flush() then clean it. The sound is
+ * cut into overlapping 32 ms slices; every frequency of a slice is turned down by a fixed
+ * amount (12 dB, Strong 18 dB) unless something other than hiss is found there. Finding it:
+ * the level is compared with the hiss in groups of neighbouring frequencies - as wide as the
+ * ear's own bands (faint "s", "f", breath) and narrow ones (vowel overtones) - judged by
+ * medians over 5 and 11 slices, which ignore brief outliers: random hiss peaks can't open the
+ * gate ("singing"), and a click can't hold it open around itself (hiss bursts). Clicks must
+ * stand out in their own slice. Each check opens just above the highest level pure hiss
+ * reaches on it. Where the gate opens, the hiss's share of the energy is still subtracted.
+ * The output has exactly the input's length and timing.
+ */
+class NoiseReducer {
+  constructor(sampleRate, level) {
+    let size = 256;
+    while (size < sampleRate * 0.032) size *= 2;
+    const n = this.n = size, hop = this.hop = n / 4, half = this.half = n / 2;
+    this.floorDb = level >= NR.STRONG ? NR.FLOOR_DB_STRONG : NR.FLOOR_DB_NORMAL;
+    this.floorGain = Math.pow(10, this.floorDb / 20);
+    this.win = new Float64Array(n); this.cos = new Float64Array(half); this.sin = new Float64Array(half);
+    for (let i = 0; i < n; i++) this.win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / n);
+    for (let i = 0; i < half; i++) { this.cos[i] = Math.cos(2 * Math.PI * i / n); this.sin[i] = Math.sin(2 * Math.PI * i / n); }
+    const bits = Math.round(Math.log2(n));
+    this.rev = new Int32Array(n);
+    for (let i = 0; i < n; i++) {
+      let r = 0;
+      for (let b = 0; b < bits; b++) if (i & (1 << b)) r |= 1 << (bits - 1 - b);
+      this.rev[i] = r;
+    }
+    const F = (len) => new Float64Array(len);
+    this.frame = F(n); this.re = F(n); this.im = F(n); this.hopBuf = F(hop); this.acc = F(n);
+    this.gain = F(half + 1); this.smooth = F(half + 1); this.ratio = F(half + 1);
+    this.sortBuf = F(2 * NR.LOOK + 1); this.prefix = F(half + 2);
+
+    const binHz = sampleRate / n;
+    this.broadReach = new Int32Array(half + 1); this.ownReach = new Int32Array(half + 1);
+    const table = () => Array.from({ length: CHECKS }, () => F(half + 1));
+    this.lo = table(); this.hi = table(); this.loDb = table(); this.spanDb = table();
+    for (let k = 0; k <= half; k++) {
+      const erb = 24.7 * (4.37 * k * binHz / 1000 + 1);
+      this.broadReach[k] = Math.max(1, Math.round(NR.ERB_SHARE * erb / binHz));
+      this.ownReach[k] = Math.max(NR.OWN_MIN_REACH, this.broadReach[k]);
+      const nb = this.groupSize(k, this.broadReach[k]), no = this.groupSize(k, this.ownReach[k]);
+      this.setGate(OWN, k, calibrated(NR.OWN_P99, no), calibrated(NR.OWN_P9999, no));
+      this.setGate(BROAD_MID, k, calibrated(NR.MED5_P99, nb), calibrated(NR.MED5_P9999, nb));
+      this.setGate(BROAD_LONG, k, calibrated(NR.MED11_P99, nb), calibrated(NR.MED11_P9999, nb));
+      this.setGate(NARROW_MID, k, NR.NARROW_P99[1], NR.NARROW_P9999[1]);
+      this.setGate(NARROW_LONG, k, NR.NARROW_P99[2], NR.NARROW_P9999[2]);
+    }
+    this.hist = Array.from({ length: half + 1 }, () => new Int32Array(NR.HIST_BUCKETS));
+    this.ring = 2 * NR.LOOK + 1;
+    const rings = (len) => Array.from({ length: this.ring }, () => F(len));
+    this.ringRe = rings(n); this.ringIm = rings(n);
+    this.ringOwn = rings(half + 1); this.ringBroad = rings(half + 1); this.ringNarrow = rings(half + 1);
+    this.hopFill = 0; this.framesSeen = 0; this.framesUsed = 0; this.toDiscard = 0;
+    this.inCount = 0; this.outCount = 0; this.stored = 0; this.processed = 0;
+    this.analyzing = true; this.noise = null; this.level = 0;
+    this.out = null; this.o = 0;
+  }
+
+  groupSize(k, reach) { return Math.min(this.half, k + reach) - Math.max(0, k - reach) + 1; }
+
+  setGate(check, k, p99, p9999) {
+    const low = p9999 + NR.MARGIN_DB, span = NR.SPAN_FACTOR * Math.max(0.5, p9999 - p99);
+    this.loDb[check][k] = low; this.spanDb[check][k] = span;
+    this.lo[check][k] = Math.pow(10, low / 10); this.hi[check][k] = Math.pow(10, (low + span) / 10);
+  }
+
+  /** Pass 1: listen to samples s[from..to). */
+  analyze(s, from = 0, to = s.length) {
+    for (let i = from; i < to; i++) this.push(s[i] / 32768);
+  }
+
+  /** Ends the first pass and works out the hiss profile of the clip. */
+  finishAnalysis() {
+    const half = this.half;
+    if (this.framesUsed >= NR.MIN_FRAMES) {
+      const raw = new Float64Array(half + 1);
+      const target = Math.ceil(NR.PERCENTILE * this.framesUsed);
+      for (let k = 0; k <= half; k++) {
+        let sum = 0, b = 0;
+        while (b < NR.HIST_BUCKETS - 1 && (sum += this.hist[k][b]) < target) b++;
+        raw[k] = Math.pow(10, (NR.DB_MIN + (b + 0.5) * NR.DB_STEP) / 10);
+      }
+      this.noise = new Float64Array(half + 1);
+      for (let k = 0; k <= half; k++) {
+        const reach = Math.min(2, Math.floor(k / 4));
+        let s = 0, ws = 0;
+        for (let d = -reach; d <= reach; d++) {
+          const j = k + d;
+          if (j < 0 || j > half) continue;
+          const w = 3 - Math.abs(d);
+          s += w * raw[j]; ws += w;
+        }
+        this.noise[k] = Math.max(1e-14, s / ws * NR.BIAS);
+      }
+    }
+    this.analyzing = false;
+    this.frame.fill(0); this.acc.fill(0);
+    this.hopFill = 0; this.framesSeen = 0; this.inCount = 0; this.outCount = 0; this.stored = 0; this.processed = 0;
+    this.toDiscard = this.n - this.hop;
+  }
+
+  /** Pass 2: clean s[from..to), writing finished samples into out (may lag; flush() ends it). */
+  process(s, from, to, out) {
+    this.out = out;
+    for (let i = from; i < to; i++) { this.inCount++; this.push(s[i] / 32768); }
+  }
+
+  flush(out) {
+    this.out = out;
+    while (this.outCount < this.inCount) this.push(0);
+  }
+
+  push(v) {
+    const n = this.n, hop = this.hop, half = this.half, frame = this.frame, re = this.re, im = this.im, win = this.win;
+    this.hopBuf[this.hopFill++] = v;
+    if (this.hopFill < hop) return;
+    this.hopFill = 0;
+    frame.copyWithin(0, hop);
+    frame.set(this.hopBuf, n - hop);
+    this.framesSeen++;
+    for (let i = 0; i < n; i++) { re[i] = frame[i] * win[i]; im[i] = 0; }
+    this.fft(false);
+    if (this.analyzing) { this.learn(); return; }
+    const slot = this.stored % this.ring;
+    this.ringRe[slot].set(re); this.ringIm[slot].set(im);
+    if (this.noise) {
+      const ratio = this.ratio, prefix = this.prefix, noise = this.noise;
+      for (let k = 0; k <= half; k++) ratio[k] = (re[k] * re[k] + im[k] * im[k]) / noise[k];
+      prefix[0] = 0;
+      for (let k = 0; k <= half; k++) prefix[k + 1] = prefix[k] + ratio[k];
+      const own = this.ringOwn[slot], broad = this.ringBroad[slot], narrow = this.ringNarrow[slot];
+      for (let k = 0; k <= half; k++) {
+        own[k] = this.groupAverage(k, this.ownReach[k]);
+        broad[k] = this.groupAverage(k, this.broadReach[k]);
+        const l = ratio[Math.max(0, k - 1)], r = ratio[Math.min(half, k + 1)];
+        narrow[k] = (l + 2 * ratio[k] + r) / 4;
+      }
+    }
+    this.stored++;
+    while (this.processed + NR.LOOK < this.stored) this.emit();
+  }
+
+  groupAverage(k, reach) {
+    const a = Math.max(0, k - reach), b = Math.min(this.half, k + reach);
+    return (this.prefix[b + 1] - this.prefix[a]) / (b - a + 1);
+  }
+
+  emit() {
+    const n = this.n, hop = this.hop, half = this.half, re = this.re, im = this.im, acc = this.acc, win = this.win;
+    const t = this.processed++;
+    const slot = t % this.ring;
+    re.set(this.ringRe[slot]); im.set(this.ringIm[slot]);
+    if (this.noise) {
+      this.computeGain(t);
+      const gain = this.gain;
+      for (let k = 0; k <= half; k++) {
+        const g = gain[k];
+        re[k] *= g; im[k] *= g;
+        if (k > 0 && k < half) { re[n - k] *= g; im[n - k] *= g; }
+      }
+    }
+    this.fft(true);
+    for (let i = 0; i < n; i++) acc[i] += re[i] / n * win[i];
+    for (let i = 0; i < hop; i++) {
+      if (this.toDiscard > 0) { this.toDiscard--; continue; }
+      if (this.outCount >= this.inCount) break;
+      const v16 = Math.round(acc[i] / NR.WOLA_NORM * 32768);
+      this.out[this.outCount++] = Math.max(-32768, Math.min(32767, v16));
+    }
+    acc.copyWithin(0, hop);
+    acc.fill(0, n - hop);
+  }
+
+  learn() {
+    const n = this.n, half = this.half, frame = this.frame, re = this.re, im = this.im, smooth = this.smooth;
+    if (this.framesSeen * this.hop < n) return;
+    let energy = 0;
+    for (let i = 0; i < n; i++) energy += frame[i] * frame[i];
+    if (energy < 1e-12 * n) return;
+    const first = this.framesUsed === 0;
+    for (let k = 0; k <= half; k++) {
+      const p = re[k] * re[k] + im[k] * im[k];
+      smooth[k] = first ? p : NR.LEARN_SMOOTHING * smooth[k] + (1 - NR.LEARN_SMOOTHING) * p;
+      const b = Math.trunc((10 * Math.log10(smooth[k] + 1e-30) - NR.DB_MIN) / NR.DB_STEP);
+      this.hist[k][Math.max(0, Math.min(NR.HIST_BUCKETS - 1, b))]++;
+    }
+    this.framesUsed++;
+  }
+
+  computeGain(t) {
+    const half = this.half, ring = this.ring;
+    const first = Math.max(0, t - NR.LOOK), last = Math.min(this.stored - 1, t + NR.LOOK);
+    const firstMid = Math.max(0, t - NR.MID), lastMid = Math.min(this.stored - 1, t + NR.MID);
+    const own = this.ringOwn[t % ring];
+    for (let k = 0; k <= half; k++) {
+      this.level = 0;
+      let x = this.check(own[k], OWN, k);
+      if (x < 1) x = Math.max(x, this.medianCheck(this.ringBroad, firstMid, lastMid, k, BROAD_MID));
+      if (x < 1) x = Math.max(x, this.medianCheck(this.ringNarrow, firstMid, lastMid, k, NARROW_MID));
+      if (x < 1) x = Math.max(x, this.medianCheck(this.ringBroad, first, last, k, BROAD_LONG));
+      if (x < 1) x = Math.max(x, this.medianCheck(this.ringNarrow, first, last, k, NARROW_LONG));
+      if (x <= 0) { this.gain[k] = this.floorGain; continue; }
+      let g = x >= 1 ? 1.0 : Math.pow(10, this.floorDb * (1 - x) / 20);
+      g *= Math.sqrt(Math.max(0, 1 - NR.SUBTRACT / this.level));
+      this.gain[k] = Math.max(this.floorGain, g);
+    }
+  }
+
+  check(ratio, c, k) {
+    const x = this.knee(ratio, c, k);
+    if (x > 0 && ratio > this.level) this.level = ratio;
+    return x;
+  }
+
+  medianCheck(ringStat, a, b, k, c) {
+    // quick count first: most frequencies are plain hiss and need no sorting
+    const cnt = b - a + 1, need = cnt - ((cnt - 1) >> 1), threshold = this.lo[c][k], ring = this.ring;
+    let above = 0, enough = false;
+    for (let u = a; u <= b; u++) {
+      if (ringStat[u % ring][k] > threshold && ++above >= need) { enough = true; break; }
+    }
+    if (!enough) return 0;
+    const sortBuf = this.sortBuf;
+    let m = 0;
+    for (let u = a; u <= b; u++) {
+      const v = ringStat[u % ring][k];
+      let i = m++;
+      while (i > 0 && sortBuf[i - 1] > v) { sortBuf[i] = sortBuf[i - 1]; i--; }
+      sortBuf[i] = v;
+    }
+    return this.check(sortBuf[(m - 1) >> 1], c, k);
+  }
+
+  knee(ratio, c, k) {
+    if (ratio <= this.lo[c][k]) return 0;
+    if (ratio >= this.hi[c][k]) return 1;
+    let x = (10 * Math.log10(ratio) - this.loDb[c][k]) / this.spanDb[c][k];
+    x = Math.max(0, Math.min(1, x));
+    return x * x * (3 - 2 * x);
+  }
+
+  fft(inverse) {
+    const n = this.n, re = this.re, im = this.im, rev = this.rev, cos = this.cos, sin = this.sin;
+    for (let i = 0; i < n; i++) {
+      const j = rev[i];
+      if (j > i) {
+        let t = re[i]; re[i] = re[j]; re[j] = t;
+        t = im[i]; im[i] = im[j]; im[j] = t;
+      }
+    }
+    for (let size = 2; size <= n; size <<= 1) {
+      const hs = size >> 1, step = n / size;
+      for (let i = 0; i < n; i += size) {
+        for (let j = 0, t = 0; j < hs; j++, t += step) {
+          const wr = cos[t], wi = inverse ? sin[t] : -sin[t];
+          const a = i + j, b = a + hs;
+          const xr = re[b] * wr - im[b] * wi;
+          const xi = re[b] * wi + im[b] * wr;
+          re[b] = re[a] - xr; im[b] = im[a] - xi;
+          re[a] += xr; im[a] += xi;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Cleans interleaved 16-bit audio (1 or 2 channels). onProgress(0..1) is called now and then,
+ * and the work pauses briefly so the page stays responsive.
+ */
+async function reduceNoise(samples, channels, sampleRate, level, onProgress) {
+  const frames = Math.floor(samples.length / channels);
+  const result = new Int16Array(frames * channels);
+  const pause = () => new Promise((r) => setTimeout(r, 0));
+  const block = sampleRate * 2;
+  for (let c = 0; c < channels; c++) {
+    let one = samples;
+    if (channels > 1) {
+      one = new Int16Array(frames);
+      for (let i = 0; i < frames; i++) one[i] = samples[i * channels + c];
+    }
+    const nr = new NoiseReducer(sampleRate, level);
+    for (let p = 0; p < frames; p += block) {
+      nr.analyze(one, p, Math.min(frames, p + block));
+      if (onProgress) onProgress((c + 0.4 * p / frames) / channels);
+      await pause();
+    }
+    nr.finishAnalysis();
+    const out = new Int16Array(frames);
+    for (let p = 0; p < frames; p += block) {
+      nr.process(one, p, Math.min(frames, p + block), out);
+      if (onProgress) onProgress((c + 0.4 + 0.6 * p / frames) / channels);
+      await pause();
+    }
+    nr.flush(out);
+    if (channels > 1) for (let i = 0; i < frames; i++) result[i * channels + c] = out[i];
+    else result.set(out);
+  }
+  return result;
+}
+
+// ------------------------------------------------------------------ JPEG
+
+/** Finds the JPEG start marker near the start of a Motion-JPEG chunk, or -1. */
+function findSoi(b) {
+  const lim = Math.min(b.length - 1, 1024);
+  for (let i = 0; i < lim; i++) if (b[i] === 0xFF && b[i + 1] === 0xD8) return i;
+  return -1;
+}
+
+/** Walks the JPEG's segments before the image data: fn(marker, start, segLen) may return a value to stop. */
+function walkJpeg(b, fn) {
+  let p = 2;
+  while (p + 4 <= b.length) {
+    if (b[p] !== 0xFF) return undefined;
+    const m = b[p + 1];
+    if (m === 0xFF) { p++; continue; }
+    if (m === 0xDA || m === 0xD9) return fn(m, p, 0);
+    if (m === 0x01 || (m >= 0xD0 && m <= 0xD7)) { p += 2; continue; }
+    const segLen = (b[p + 2] << 8) | b[p + 3];
+    if (segLen < 2 || p + 2 + segLen > b.length) return undefined;
+    const r = fn(m, p, segLen);
+    if (r !== undefined) return r;
+    p += 2 + segLen;
+  }
+  return undefined;
+}
+
+function hasDht(b) {
+  return walkJpeg(b, (m) => (m === 0xC4 ? true : m === 0xDA || m === 0xD9 ? false : undefined)) === true;
+}
+
+/** Motion-JPEG frames may leave out the standard Huffman tables; this puts them back. */
+function insertDefaultDht(b) {
+  const out = new Uint8Array(b.length + STD_DHT.length);
+  out.set(b.subarray(0, 2));
+  out.set(STD_DHT, 2);
+  out.set(b.subarray(2), 2 + STD_DHT.length);
+  return out;
+}
+
+/** Width and height from the JPEG's frame header, or null. */
+function jpegSize(b) {
+  const r = walkJpeg(b, (m, p, segLen) => {
+    if (m >= 0xC0 && m <= 0xCF && m !== 0xC4 && m !== 0xC8 && m !== 0xCC && segLen >= 7) {
+      return { height: (b[p + 5] << 8) | b[p + 6], width: (b[p + 7] << 8) | b[p + 8] };
+    }
+    return m === 0xDA || m === 0xD9 ? null : undefined;
+  });
+  return r || null;
+}
+
+/** Last-resort date search in the file's first bytes (survives the camera's broken EXIF). */
+function findRawDate(b) {
+  const len = Math.min(b.length, 128 * 1024);
+  let s = '';
+  for (let i = 0; i < len; i += 8192) s += String.fromCharCode.apply(null, b.subarray(i, Math.min(len, i + 8192)));
+  const m = /(20\d\d)[:\-\/](\d\d)[:\-\/](\d\d)[ :T](\d\d)[:\-](\d\d)[:\-](\d\d)/.exec(s);
+  return m ? m[0] : null;
+}
+
+const MIN_PLAUSIBLE = Date.UTC(2015, 0, 1);
+function plausible(ms) { return ms >= MIN_PLAUSIBLE && ms <= Date.now() + 2 * 24 * 3600 * 1000; }
+
+/** Parses "2026:03:03 12:16:29" and the Charmera's broken "2026:03:03:12:16:29" as local time; -1 if invalid. */
+function parseLooseDate(s) {
+  if (!s) return -1;
+  const v = (s.match(/\d+/g) || []).slice(0, 6).map(Number);
+  if (v.length < 3) return -1;
+  const [y, mo, d, hh = 12, mi = 0, ss = 0] = v;
+  if (y < 2000 || y > 2100 || mo < 1 || mo > 12 || d < 1 || d > 31 || hh > 23 || mi > 59 || ss > 60) return -1;
+  const t = new Date(y, mo - 1, d, hh, mi, Math.min(ss, 59)).getTime();
+  return plausible(t) ? t : -1;
+}
+
+const pad2 = (n) => String(n).padStart(2, '0');
+function exifDate(ms) {
+  const d = new Date(ms);
+  return `${d.getFullYear()}:${pad2(d.getMonth() + 1)}:${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+}
+function stamp(ms) {
+  const d = new Date(ms);
+  return `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}_${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
+}
+function exifOffset(ms) {
+  const min = -new Date(ms).getTimezoneOffset();
+  return `${min < 0 ? '-' : '+'}${pad2(Math.floor(Math.abs(min) / 60))}:${pad2(Math.abs(min) % 60)}`;
+}
+
+/** A fresh EXIF block (APP1 segment): date, time zone, camera name, size and orientation. */
+function buildExif(ms, orientation, size) {
+  const ascii = (s) => { const a = new Uint8Array(s.length + 1); for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a; };
+  const date = ascii(exifDate(ms)), off = ascii(exifOffset(ms));
+  const ifd0 = [[0x010F, 2, ascii('Kodak')], [0x0110, 2, ascii('Charmera')], [0x0112, 3, orientation], [0x0132, 2, date], [0x8769, 4, 0]];
+  const exif = [[0x9000, 7, new Uint8Array([48, 50, 51, 50])], [0x9003, 2, date], [0x9004, 2, date],
+    [0x9010, 2, off], [0x9011, 2, off], [0x9012, 2, off]];
+  if (size) exif.push([0xA002, 4, size.width], [0xA003, 4, size.height]);
+  const ifdBytes = (e) => 2 + e.length * 12 + 4;
+  const dataLen = (e) => e.reduce((s, [, , v]) => s + (v instanceof Uint8Array && v.length > 4 ? v.length + (v.length & 1) : 0), 0);
+  const ifd0At = 8, ifd0Data = ifd0At + ifdBytes(ifd0), exifAt = ifd0Data + dataLen(ifd0), exifData = exifAt + ifdBytes(exif);
+  const total = exifData + dataLen(exif);
+  const t = new Uint8Array(total), dv = new DataView(t.buffer);
+  t.set([0x49, 0x49, 0x2A, 0x00]); dv.setUint32(4, 8, true);
+  const write = (entries, at, dataAt) => {
+    dv.setUint16(at, entries.length, true);
+    let p = at + 2, d = dataAt;
+    for (const [tag, type, val] of entries) {
+      dv.setUint16(p, tag, true); dv.setUint16(p + 2, type, true);
+      if (val instanceof Uint8Array) {
+        dv.setUint32(p + 4, val.length, true);
+        if (val.length <= 4) t.set(val, p + 8);
+        else { dv.setUint32(p + 8, d, true); t.set(val, d); d += val.length + (val.length & 1); }
+      } else {
+        dv.setUint32(p + 4, 1, true);
+        if (type === 3) dv.setUint16(p + 8, val, true); else dv.setUint32(p + 8, val, true);
+      }
+      p += 12;
+    }
+    dv.setUint32(p, 0, true);
+  };
+  ifd0[4][2] = exifAt;
+  write(ifd0, ifd0At, ifd0Data);
+  write(exif, exifAt, exifData);
+  const seg = new Uint8Array(4 + 6 + total);
+  seg.set([0xFF, 0xE1, (total + 8) >> 8, (total + 8) & 255, 0x45, 0x78, 0x69, 0x66, 0, 0]);
+  seg.set(t, 10);
+  return seg;
+}
+
+/**
+ * Replaces the JPEG's EXIF with a clean one (correct date, orientation). The picture data is
+ * copied byte for byte. clockwise = 0, 90, 180 or 270. Returns null if it isn't a normal JPEG.
+ */
+function fixJpeg(b, ms, clockwise) {
+  if (b.length < 4 || b[0] !== 0xFF || b[1] !== 0xD8) return null;
+  const parts = [];
+  let ok = false, tail = 0;
+  walkJpeg(b, (m, p, segLen) => {
+    if (m === 0xDA || m === 0xD9) { ok = true; tail = p; return true; }
+    const isExif = m === 0xE1 && segLen >= 8 && b[p + 4] === 0x45 && b[p + 5] === 0x78 && b[p + 6] === 0x69 && b[p + 7] === 0x66;
+    if (!isExif) parts.push(b.subarray(p, p + 2 + segLen));
+    return undefined;
+  });
+  if (!ok) return null;
+  const orientation = { 0: 1, 90: 6, 180: 3, 270: 8 }[((clockwise % 360) + 360) % 360] || 1;
+  const exif = buildExif(ms, orientation, jpegSize(b));
+  // keep a JFIF header (APP0) first if there is one, then EXIF, then everything else
+  const head = parts.length && parts[0][1] === 0xE0 ? [parts.shift()] : [];
+  const all = [b.subarray(0, 2), ...head, exif, ...parts, b.subarray(tail)];
+  const out = new Uint8Array(all.reduce((s, x) => s + x.length, 0));
+  let o = 0;
+  for (const x of all) { out.set(x, o); o += x.length; }
+  return out;
+}
+
+// ------------------------------------------------------------------ MP4 dates
+
+const MP4_EPOCH_DELTA = 2082844800; // seconds from 1904-01-01 to 1970-01-01
+
+function mp4Boxes(b, start, end, fn) {
+  const dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+  let p = start;
+  while (p + 8 <= end) {
+    let size = dv.getUint32(p), hdr = 8;
+    const type = fourcc(b, p + 4);
+    if (size === 1) { size = dv.getUint32(p + 8) * 4294967296 + dv.getUint32(p + 12); hdr = 16; }
+    else if (size === 0) size = end - p;
+    if (size < hdr || p + size > end) return;
+    fn(type, p + hdr, p + size, dv);
+    p += size;
+  }
+}
+
+/** Sets creation/modification time in the MP4's mvhd, tkhd and mdhd boxes. Returns true if patched. */
+function mp4SetTimes(b, epochMs) {
+  const t = Math.floor(epochMs / 1000) + MP4_EPOCH_DELTA;
+  let any = false;
+  const patch = (start, end, depth) => mp4Boxes(b, start, end, (type, cs, ce, dv) => {
+    if (type === 'mvhd' || type === 'tkhd' || type === 'mdhd') {
+      if (dv.getUint8(cs) === 1) {
+        dv.setUint32(cs + 4, Math.floor(t / 4294967296)); dv.setUint32(cs + 8, t >>> 0);
+        dv.setUint32(cs + 12, Math.floor(t / 4294967296)); dv.setUint32(cs + 16, t >>> 0);
+      } else {
+        dv.setUint32(cs + 4, t >>> 0); dv.setUint32(cs + 8, t >>> 0);
+      }
+      any = true;
+    } else if ((type === 'moov' || type === 'trak' || type === 'mdia') && depth < 4) {
+      patch(cs, ce, depth + 1);
+    }
+  });
+  patch(0, b.length, 0);
+  return any;
+}
+
+
+// ===========================================================================================
+// Charmera Import (web): the page. Picks files from the camera, shows them as a grid,
+// converts the marked ones (photos: date fix + rotation; videos: AVI -> MP4 with the noise
+// filter) and hands the results to the iOS share sheet ("Save to Photos").
+// ===========================================================================================
+
+const $ = (id) => document.getElementById(id);
+const state = { items: [], results: [], busy: false, cancel: false };
+const NOISE_NAMES = ['Off', 'Normal', 'Strong'];
+
+function store(key, value) {
+  try {
+    if (value === undefined) return JSON.parse(localStorage.getItem(key));
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) { /* private mode etc.: the page works without it */ }
+  return null;
+}
+const doneKeys = new Set(store('charmera-done') || []);
+const itemKey = (f) => f.name + '|' + f.size;
+
+function kindOf(file) {
+  const n = file.name.toLowerCase();
+  if (n.startsWith('.')) return null;
+  if (/\.(jpe?g)$/.test(n) || file.type === 'image/jpeg') return 'photo';
+  if (/\.avi$/.test(n)) return 'avi';
+  if (/\.(mp4|mov)$/.test(n)) return 'video';
+  return null;
+}
+
+// ------------------------------------------------------------------ picking + grid
+
+function addFiles(fileList) {
+  const known = new Set(state.items.map((it) => itemKey(it.file)));
+  let skipped = 0;
+  for (const file of fileList) {
+    const kind = kindOf(file);
+    if (!kind) { skipped++; continue; }
+    if (known.has(itemKey(file))) continue;
+    known.add(itemKey(file));
+    state.items.push({ file, kind, selected: false, rot: 0, done: doneKeys.has(itemKey(file)), durationMs: -1, el: null });
+  }
+  state.items.sort((a, b) => (b.file.lastModified - a.file.lastModified) || b.file.name.localeCompare(a.file.name));
+  renderGrid();
+  if (skipped) toast(`${skipped} file${skipped === 1 ? '' : 's'} skipped (not photos or videos)`);
+}
+
+function renderGrid() {
+  const grid = $('grid');
+  grid.textContent = '';
+  for (const it of state.items) {
+    if (!it.el) it.el = makeCell(it);
+    grid.appendChild(it.el);
+    updateCell(it);
+  }
+  $('intro').hidden = state.items.length > 0;
+  $('bar').hidden = state.items.length === 0;
+  updateBar();
+  pumpThumbs();
+}
+
+function makeCell(it) {
+  const cell = document.createElement('button');
+  cell.type = 'button';
+  cell.className = 'cell';
+  cell.innerHTML = '<canvas width="240" height="240"></canvas><span class="badge"></span><span class="done">✓ saved</span><span class="check"></span>';
+  cell.addEventListener('click', () => {
+    if (state.busy) return;
+    it.selected = !it.selected;
+    updateCell(it);
+    updateBar();
+  });
+  return cell;
+}
+
+function updateCell(it) {
+  const c = it.el;
+  c.classList.toggle('selected', it.selected);
+  c.classList.toggle('isdone', it.done && !it.selected);
+  c.querySelector('canvas').style.transform = `rotate(${it.rot}deg)`;
+  const badge = c.querySelector('.badge');
+  badge.hidden = it.kind === 'photo';
+  badge.textContent = it.durationMs > 0 ? '▶ ' + formatDuration(it.durationMs) : '▶ video';
+  c.querySelector('.done').hidden = !it.done;
+  c.querySelector('.check').textContent = it.selected ? '✓' : '';
+  c.setAttribute('aria-pressed', it.selected);
+  c.setAttribute('aria-label', it.file.name);
+}
+
+function formatDuration(ms) {
+  const s = Math.round(ms / 1000);
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+
+function updateBar() {
+  const sel = state.items.filter((it) => it.selected).length;
+  $('btnAll').textContent = sel === state.items.length && sel > 0 ? 'None' : 'All';
+  $('btnGo').textContent = sel ? `Convert ${sel}` : 'Convert';
+  $('btnGo').disabled = !sel || state.busy;
+  $('btnRotate').disabled = !sel || state.busy;
+  $('btnAll').disabled = state.busy;
+  $('btnNew').disabled = state.busy || !state.items.some((it) => !it.done);
+  $('pick2').disabled = state.busy;
+  const photos = state.items.filter((it) => it.kind === 'photo').length;
+  $('status').textContent = state.items.length
+    ? `${photos} photo${photos === 1 ? '' : 's'} · ${state.items.length - photos} video${state.items.length - photos === 1 ? '' : 's'} · tap to mark`
+    : 'Kodak Charmera → iPhone';
+}
+
+// ------------------------------------------------------------------ thumbnails
+
+let thumbsRunning = 0;
+function pumpThumbs() {
+  while (thumbsRunning < 2) {
+    const it = state.items.find((x) => !x.thumbStarted);
+    if (!it) return;
+    it.thumbStarted = true;
+    thumbsRunning++;
+    loadThumb(it).catch(() => {}).then(() => { thumbsRunning--; pumpThumbs(); });
+  }
+}
+
+async function bitmapFrom(blob, maxSide) {
+  if (maxSide) {
+    try { return await createImageBitmap(blob, { resizeWidth: maxSide, resizeQuality: 'medium' }); } catch (e) { /* older engines */ }
+  }
+  return createImageBitmap(blob);
+}
+
+async function loadThumb(it) {
+  let blob = it.file;
+  if (it.kind === 'avi') {
+    const avi = await parseAvi(new BlobReader(it.file, 256 * 1024), true);
+    it.durationMs = avi.headerDurationMs();
+    updateCell(it);
+    if (!avi.frameCount()) return;
+    blob = await frameBlob(it.file, avi.videoPos[0], avi.videoLen[0]);
+    if (!blob) return;
+  } else if (it.kind === 'video') {
+    return; // other videos are passed through untouched; no preview
+  }
+  const bmp = await bitmapFrom(blob, 480);
+  const canvas = it.el.querySelector('canvas');
+  const side = Math.min(bmp.width, bmp.height);
+  canvas.getContext('2d').drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, 240, 240);
+  bmp.close();
+}
+
+/** One Motion-JPEG frame as a JPEG blob (adds the standard Huffman tables if the frame lacks them). */
+async function frameBlob(file, pos, len) {
+  let b = new Uint8Array(await file.slice(pos, pos + len).arrayBuffer());
+  const soi = findSoi(b);
+  if (soi < 0) return null;
+  if (soi > 0) b = b.subarray(soi);
+  if (!hasDht(b)) b = insertDefaultDht(b);
+  return new Blob([b], { type: 'image/jpeg' });
+}
+
+// ------------------------------------------------------------------ photos
+
+function uniqueName(base, ext, used) {
+  let name = base + ext, i = 2;
+  while (used.has(name)) name = `${base}_${i++}${ext}`;
+  used.add(name);
+  return name;
+}
+
+async function convertPhoto(it, used) {
+  const bytes = new Uint8Array(await it.file.arrayBuffer());
+  let taken = parseLooseDate(findRawDate(bytes));
+  if (taken <= 0) taken = plausible(it.file.lastModified) ? it.file.lastModified : Date.now();
+  const fixed = fixJpeg(bytes, taken, it.rot) || bytes;
+  return new File([fixed], uniqueName('IMG_' + stamp(taken), '.jpg', used), { type: 'image/jpeg', lastModified: taken });
+}
+
+// ------------------------------------------------------------------ videos
+
+async function firstSupported(Encoder, configs) {
+  for (const c of configs) {
+    try {
+      const r = await Encoder.isConfigSupported(c);
+      if (r && r.supported) return c;
+    } catch (e) { /* try the next one */ }
+  }
+  return null;
+}
+
+/** Encodes 16-bit sound to AAC (the format iPhones record). Returns {config, muxCodec, chunks, rate} or null. */
+async function encodeAudio(pcm, channels, rate) {
+  if (typeof AudioEncoder === 'undefined') return null;
+  const br = (r) => Math.min(128000 * channels, Math.max(32000, r * channels * 4));
+  const config = await firstSupported(AudioEncoder, [
+    { codec: 'mp4a.40.2', sampleRate: rate, numberOfChannels: channels, bitrate: br(rate) },
+    { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: channels, bitrate: br(48000) },
+    { codec: 'mp4a.40.2', sampleRate: 44100, numberOfChannels: channels, bitrate: br(44100) },
+    { codec: 'opus', sampleRate: 48000, numberOfChannels: channels, bitrate: 64000 * channels },
+  ]);
+  if (!config) return null;
+  const outRate = config.sampleRate;
+  if (outRate !== rate) pcm = resample(pcm, channels, rate, outRate);
+  const chunks = [];
+  let failure = null;
+  const enc = new AudioEncoder({ output: (chunk, meta) => chunks.push({ chunk, meta }), error: (e) => { failure = e; } });
+  enc.configure(config);
+  const frames = pcm.length / channels, step = 4096;
+  for (let p = 0; p < frames && !failure; p += step) {
+    const nFrames = Math.min(step, frames - p);
+    const data = new AudioData({ format: 's16', sampleRate: outRate, numberOfFrames: nFrames, numberOfChannels: channels,
+      timestamp: Math.round(p * 1e6 / outRate), data: pcm.subarray(p * channels, (p + nFrames) * channels) });
+    enc.encode(data);
+    data.close();
+    if (enc.encodeQueueSize > 20) await new Promise((r) => setTimeout(r, 2));
+  }
+  await enc.flush();
+  enc.close();
+  if (failure) throw failure;
+  return { config, muxCodec: config.codec === 'opus' ? 'opus' : 'aac', chunks, rate: outRate };
+}
+
+/**
+ * Converts one of the camera's AVI files (Motion-JPEG + PCM) to MP4 (H.264 + AAC).
+ * Returns {file, notes}. onProgress(fraction, text).
+ */
+async function convertAvi(it, used, noiseLevel, onProgress) {
+  const file = it.file, notes = [];
+  if (typeof VideoEncoder === 'undefined') throw new Error('this browser has no video encoder (needs iOS 16.4 or newer)');
+  const avi = await parseAvi(new BlobReader(file), false);
+  const n = avi.frameCount();
+  if (!avi.hasVideo || !n) throw new Error('no video frames found in the file');
+  const timing = frameTimes(avi);
+  if (timing.corrected) notes.push(`picture timed to the sound (camera recorded ~${timing.realFps.toFixed(0)} frames/s, file says ${timing.statedFps.toFixed(0)})`);
+
+  // Sound first (small), so it can be interleaved with the picture
+  let audio = null;
+  if (avi.hasAudio) {
+    if (avi.audioDecodable()) {
+      try {
+        let pcm = await decodePcm(file, avi);
+        if (noiseLevel > 0) pcm = await reduceNoise(pcm, avi.channels, avi.sampleRate, noiseLevel, (f) => onProgress(0.04 * f, 'Cleaning the sound'));
+        audio = await encodeAudio(pcm, avi.channels, avi.sampleRate);
+        if (!audio || !audio.chunks.length) { audio = null; notes.push('the sound could not be encoded, so the video is silent'); }
+      } catch (e) {
+        audio = null;
+        notes.push('the sound could not be converted (' + (e.message || e) + '), so the video is silent');
+      }
+    } else {
+      notes.push(`unsupported sound format (${avi.audioDescription()}), so the video is silent`);
+    }
+  }
+  if (state.cancel) throw new Error('cancelled');
+
+  // Picture size from the first frame that decodes
+  let first = null;
+  for (let i = 0; i < n && i < 60 && !first; i++) {
+    if (avi.videoLen[i] <= 0) continue;
+    const blob = await frameBlob(file, avi.videoPos[i], avi.videoLen[i]);
+    if (blob) first = await createImageBitmap(blob).catch(() => null);
+  }
+  if (!first) throw new Error(`unsupported video codec '${avi.videoFourcc}'`);
+  const w = first.width & ~1, h = first.height & ~1;
+  first.close();
+
+  const fps = Math.max(1, Math.min(60, Math.round(timing.realFps)));
+  const bitrate = Math.max(2e6, Math.min(16e6, Math.round(w * h * fps * 0.16)));
+  const level = w * h <= 1920 * 1088 ? '28' : '33';
+  const base = { width: w, height: h, bitrate, framerate: fps, latencyMode: 'quality' };
+  const vconfig = await firstSupported(VideoEncoder, [
+    { ...base, codec: 'avc1.6400' + level, avc: { format: 'avc' } },
+    { ...base, codec: 'avc1.4d00' + level, avc: { format: 'avc' } },
+    { ...base, codec: 'avc1.42e0' + level, avc: { format: 'avc' } },
+    { ...base, codec: 'avc1.6400' + level, avc: { format: 'avc' }, latencyMode: 'realtime' },
+    { ...base, codec: 'vp09.00.40.08' },
+  ]);
+  if (!vconfig) throw new Error('this browser cannot encode video at ' + w + '×' + h);
+  if (!vconfig.codec.startsWith('avc1')) notes.push('saved with VP9 video (no H.264 encoder here) – iPhone Photos may not accept it');
+  if (audio && audio.muxCodec !== 'aac') notes.push('saved with Opus sound (no AAC encoder here)');
+
+  const target = new Mp4Muxer.ArrayBufferTarget();
+  const muxer = new Mp4Muxer.Muxer({
+    target,
+    video: { codec: vconfig.codec.startsWith('avc1') ? 'avc' : 'vp9', width: w, height: h, rotation: it.rot },
+    audio: audio ? { codec: audio.muxCodec, numberOfChannels: avi.channels, sampleRate: audio.rate } : undefined,
+    fastStart: 'in-memory',
+    firstTimestampBehavior: 'offset',
+  });
+  let nextAudio = 0;
+  const audioUpTo = (us) => {
+    while (audio && nextAudio < audio.chunks.length && audio.chunks[nextAudio].chunk.timestamp <= us) {
+      const a = audio.chunks[nextAudio++];
+      muxer.addAudioChunk(a.chunk, a.meta);
+    }
+  };
+  let failure = null, written = 0;
+  const enc = new VideoEncoder({
+    output: (chunk, meta) => {
+      try { audioUpTo(chunk.timestamp); muxer.addVideoChunk(chunk, meta); written++; } catch (e) { failure = failure || e; }
+    },
+    error: (e) => { failure = failure || e; },
+  });
+  enc.configure(vconfig);
+
+  let encoded = 0, lastKey = -1e9;
+  const frameUs = Math.round(1e6 / timing.realFps);
+  for (let i = 0; i < n; i++) {
+    if (failure) break;
+    if (state.cancel) { try { enc.close(); } catch (e) { /* already closed */ } throw new Error('cancelled'); }
+    if (avi.videoLen[i] <= 0) continue; // an empty chunk means "show the previous frame a bit longer"
+    const blob = await frameBlob(file, avi.videoPos[i], avi.videoLen[i]);
+    const bmp = blob && await createImageBitmap(blob).catch(() => null);
+    if (!bmp) continue; // damaged frame: skip it
+    const ts = timing.us[i];
+    const init = { timestamp: ts, duration: i + 1 < n ? Math.max(1000, timing.us[i + 1] - ts) : frameUs };
+    if (bmp.width !== w || bmp.height !== h) init.visibleRect = { x: 0, y: 0, width: Math.min(w, bmp.width), height: Math.min(h, bmp.height) };
+    const frame = new VideoFrame(bmp, init);
+    const key = ts - lastKey >= 1e6;
+    if (key) lastKey = ts;
+    enc.encode(frame, { keyFrame: key });
+    frame.close();
+    bmp.close();
+    encoded++;
+    while (enc.encodeQueueSize > 3 && !failure) await new Promise((r) => setTimeout(r, 4));
+    if ((i & 7) === 0) onProgress(0.05 + 0.93 * (i + 1) / n, 'Converting video');
+  }
+  if (!failure) await enc.flush();
+  try { enc.close(); } catch (e) { /* already closed */ }
+  if (failure) throw failure;
+  if (!encoded || !written) throw new Error('none of the video frames could be converted');
+  audioUpTo(Infinity);
+  muxer.finalize();
+
+  const out = new Uint8Array(target.buffer);
+  // The camera writes a fake 2010 date inside its videos; the file's own time on the card is right
+  const taken = plausible(file.lastModified) ? file.lastModified : Date.now();
+  mp4SetTimes(out, taken);
+  const mp4 = new File([out], uniqueName('VID_' + stamp(taken), '.mp4', used), { type: 'video/mp4', lastModified: taken });
+  return { file: mp4, notes };
+}
+
+// ------------------------------------------------------------------ converting the marked items
+
+async function run() {
+  const sel = state.items.filter((it) => it.selected);
+  if (!sel.length || state.busy) return;
+  const noise = Number($('noise').value);
+  store('charmera-noise', noise);
+  setBusy(true);
+  let wake = null;
+  try { wake = await navigator.wakeLock.request('screen'); } catch (e) { /* not available: fine */ }
+  const used = new Set(state.results.map((r) => r.name));
+  const problems = [], notes = [];
+  let made = 0;
+  for (let i = 0; i < sel.length && !state.cancel; i++) {
+    const it = sel[i];
+    const label = `${i + 1} of ${sel.length} · ${it.file.name}`;
+    const progress = (f, text) => setProgress((i + f) / sel.length, `${text || 'Working'} ${label}${f > 0.05 && it.kind === 'avi' ? ' · ' + Math.round(f * 100) + '%' : ''}`);
+    progress(0, it.kind === 'avi' ? 'Converting video' : 'Preparing');
+    try {
+      let out;
+      if (it.kind === 'photo') {
+        out = await convertPhoto(it, used);
+      } else if (it.kind === 'avi') {
+        const r = await convertAvi(it, used, noise, progress);
+        out = r.file;
+        for (const nn of r.notes) notes.push(`${it.file.name}: ${nn}`);
+      } else {
+        out = it.file; // already an iPhone-friendly video
+      }
+      state.results.push(out);
+      it.converted = true;
+      it.selected = false;
+      updateCell(it);
+      made++;
+    } catch (e) {
+      if (state.cancel) break;
+      problems.push(`${it.file.name}: ${e && e.message ? e.message : e}`);
+    }
+    await new Promise((r) => setTimeout(r, 0));
+  }
+  if (wake) { try { await wake.release(); } catch (e) { /* ignore */ } }
+  const stopped = state.cancel;
+  setBusy(false);
+  renderResults();
+  const how = $('btnSave').hidden ? 'Use the download links.' : 'Tap “Save to Photos”.';
+  let msg = made ? `${made} item${made === 1 ? '' : 's'} ready. ${how}` : 'Nothing was converted.';
+  if (stopped) msg += ' Stopped early – the rest is still marked.';
+  $('report').textContent = [msg, ...problems.map((p) => '⚠ ' + p), ...notes.map((p) => '· ' + p)].join('\n');
+  $('report').hidden = false;
+  if (made) $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function setBusy(b) {
+  state.busy = b;
+  state.cancel = false;
+  $('progress').hidden = !b;
+  $('actions').hidden = b;
+  if (b) setProgress(0, 'Getting ready…');
+  updateBar();
+}
+
+function setProgress(f, text) {
+  $('meter').value = Math.max(0, Math.min(1, f));
+  $('ptext').textContent = text;
+}
+
+// ------------------------------------------------------------------ saving
+
+function renderResults() {
+  const box = $('results');
+  box.hidden = state.results.length === 0;
+  const photos = state.results.filter((f) => f.type.startsWith('image/')).length;
+  const videos = state.results.length - photos;
+  $('rcount').textContent = `${photos} photo${photos === 1 ? '' : 's'} and ${videos} video${videos === 1 ? '' : 's'} ready`;
+  const canShare = !!(navigator.canShare && state.results.length && navigator.canShare({ files: state.results.slice(0, 1) }));
+  $('btnSave').hidden = !canShare;
+  $('saveHint').textContent = canShare
+    ? 'In the sheet that opens, choose “Save ' + (state.results.length === 1 ? (videos ? 'Video' : 'Image') : state.results.length + ' Items') + '”.'
+    : 'This browser can’t open the share sheet for files – use the download links instead.';
+  const list = $('rlist');
+  list.textContent = '';
+  for (const f of state.results) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(f);
+    a.download = f.name;
+    a.textContent = `${f.name} (${(f.size / 1048576).toFixed(1)} MB)`;
+    list.appendChild(a);
+  }
+}
+
+async function saveAll() {
+  if (!state.results.length) return;
+  try {
+    await navigator.share({ files: state.results });
+  } catch (e) {
+    if (e && e.name === 'AbortError') return; // closed the sheet without saving
+    toast('Sharing failed: ' + (e && e.message ? e.message : e) + ' – try the download links');
+    return;
+  }
+  for (const it of state.items) if (it.converted) { it.done = true; it.converted = false; doneKeys.add(itemKey(it.file)); updateCell(it); }
+  store('charmera-done', Array.from(doneKeys).slice(-5000));
+  for (const a of $('rlist').querySelectorAll('a')) URL.revokeObjectURL(a.href);
+  state.results = [];
+  renderResults();
+  $('report').textContent = 'Saved. You’ll find them in Photos, sorted by when they were taken.';
+  updateBar();
+}
+
+let toastTimer = 0;
+function toast(text) {
+  const t = $('toast');
+  t.textContent = text;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 5000);
+}
+
+// ------------------------------------------------------------------ wiring
+
+function init() {
+  const saved = store('charmera-noise');
+  if (saved === 0 || saved === 1 || saved === 2) $('noise').value = String(saved);
+  const onPick = (e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ''; };
+  $('file').addEventListener('change', onPick);
+  $('pick').addEventListener('click', () => $('file').click());
+  $('pick2').addEventListener('click', () => $('file').click());
+  $('btnAll').addEventListener('click', () => {
+    const all = state.items.every((it) => it.selected);
+    for (const it of state.items) { it.selected = !all; updateCell(it); }
+    updateBar();
+  });
+  $('btnNew').addEventListener('click', () => {
+    for (const it of state.items) { it.selected = !it.done; updateCell(it); }
+    updateBar();
+  });
+  $('btnRotate').addEventListener('click', () => {
+    for (const it of state.items) if (it.selected) { it.rot = (it.rot + 90) % 360; updateCell(it); }
+  });
+  $('btnGo').addEventListener('click', run);
+  $('btnCancel').addEventListener('click', () => { state.cancel = true; $('ptext').textContent = 'Stopping…'; });
+  $('btnSave').addEventListener('click', saveAll);
+  if (typeof VideoEncoder === 'undefined') {
+    $('warn').textContent = 'This browser can’t convert videos (it needs Safari on iOS 16.4 or newer). Photos still work.';
+    $('warn').hidden = false;
+  }
+  updateBar();
+}
+document.addEventListener('DOMContentLoaded', init);
+
+</script>
+</body>
+</html>
